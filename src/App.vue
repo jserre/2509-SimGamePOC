@@ -57,10 +57,10 @@
       <div
         v-for="message in messages"
         :key="message.id"
-        :class="['message', message.role]"
+        :class="['message', message.role, message.source]"
       >
         <div class="message-avatar">
-          {{ message.role === 'user' ? 'U' : 'A' }}
+          {{ message.role === 'user' ? 'U' : getAssistantAvatar(message.source) }}
         </div>
         <div class="message-content">
           {{ message.content }}
@@ -208,6 +208,17 @@ const formatTime = (seconds) => {
   const mins = Math.floor(seconds / 60)
   const secs = seconds % 60
   return `${mins}:${secs.toString().padStart(2, '0')}`
+}
+
+const getAssistantAvatar = (source) => {
+  switch (source) {
+    case 'ai':
+      return '🤖'
+    case 'mock':
+      return 'A'
+    default:
+      return 'A'
+  }
 }
 
 // Send message function

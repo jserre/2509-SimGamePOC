@@ -242,6 +242,29 @@ body {
   border: none;
 }
 
+/* AI vs Mock responses styling */
+.message.assistant.ai .message-content {
+  background: #e8f5e8;
+  border: 2px solid #28a745;
+  border-left: 4px solid #28a745;
+}
+
+.message.assistant.ai .message-avatar {
+  background: #28a745;
+  color: white;
+}
+
+.message.assistant.mock .message-content {
+  background: #fff3cd;
+  border: 2px solid #ffc107;
+  border-left: 4px solid #ffc107;
+}
+
+.message.assistant.mock .message-avatar {
+  background: #ffc107;
+  color: #212529;
+}
+
 /* Input Area */
 .input-container {
   padding: 1rem;

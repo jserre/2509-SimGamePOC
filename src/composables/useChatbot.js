@@ -31,7 +31,8 @@ export function useChatbot() {
       id: 1,
       role: 'assistant',
       content: 'Bonjour ! Bienvenue dans votre entraînement à la communication avec la méthode DESC.\n\n📋 Votre exercice d\'aujourd\'hui :\nVous devez avoir une conversation difficile avec Thomas, un collaborateur qui arrive systématiquement en retard aux réunions d\'équipe.\n\n🎯 La méthode DESC :\n• Décrire : Les faits objectifs\n• Exprimer : Vos sentiments  \n• Spécifier : Ce que vous voulez\n• Conclure : Les conséquences\n\nAvez-vous des questions sur l\'exercice avant de commencer ?',
-      timestamp: new Date()
+      timestamp: new Date(),
+      source: 'mock'
     }
   ])
 
@@ -40,18 +41,21 @@ export function useChatbot() {
 
   // Chat configuration
   const config = reactive({
-    apiEndpoint: '', // To be configured later for OpenAI/Claude
+    apiEndpoint: import.meta.env.VITE_OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
+    apiKey: import.meta.env.VITE_OPENROUTER_API_KEY,
+    model: import.meta.env.VITE_OPENROUTER_MODEL || 'anthropic/claude-3.5-sonnet',
     maxMessages: 100,
-    typingDelay: { min: 1000, max: 3000 }
+    typingDelay: { min: 800, max: 2000 }
   })
 
   // Add a new message to the chat
-  const addMessage = (content, role = 'user') => {
+  const addMessage = (content, role = 'user', source = 'user') => {
     const message = {
       id: Date.now() + Math.random(),
       role,
       content,
-      timestamp: new Date()
+      timestamp: new Date(),
+      source // 'ai', 'mock', or 'user'
     }
     messages.value.push(message)
     
@@ -96,7 +100,8 @@ export function useChatbot() {
     
     addMessage(
       "🎭 L'exercice commence maintenant !\n\nVous êtes dans votre bureau.\nThomas vient d'arriver 15 minutes en retard à la réunion d'équipe.\nVous décidez d'aller lui parler.\n\n---\n\nThomas : Ah salut ! Désolé pour le retard, j'ai eu un imprévu ce matin...\nBon, on a raté quelque chose d'important ?",
-      'assistant'
+      'assistant',
+      'mock'
     )
   }
 
@@ -106,7 +111,8 @@ export function useChatbot() {
     
     addMessage(
       "⏰ Exercice terminé !\n\nFélicitations ! Prenons maintenant quelques minutes pour analyser votre performance.\n\nQuestions de réflexion :\n1. Comment vous êtes-vous senti pendant cet exercice ?\n2. Quels ont été les moments les plus difficiles ?\n3. Que feriez-vous différemment ?",
-      'assistant'
+      'assistant',
+      'mock'
     )
   }
 
@@ -149,8 +155,39 @@ export function useChatbot() {
     Object.assign(scores, newScores)
   }
 
-  // Generate responses based on phase
-  const generateResponse = (userMessage) => {
+  // Generate responses based on phase (now using AI)
+  const generateResponse = async (userMessage) => {
+    // Use AI if API key is available, fallback to mock responses
+    if (config.apiKey && config.apiKey !== 'your_openrouter_key_here') {
+      try {
+        const response = await callChatAPI(userMessage, phase.value)
+        
+        // For roleplay phase, still analyze message for scoring
+        if (phase.value === 'roleplay') {
+          analyzeMessage(userMessage)
+        }
+        
+        // For brief phase, check if can start exercise
+        if (phase.value === 'brief') {
+          messageCount.value++
+          if (messageCount.value >= 2) {
+            canStartExercise.value = true
+          }
+        }
+        
+        return { content: response, source: 'ai' }
+      } catch (error) {
+        console.error('Erreur API:', error)
+        // Fallback to mock responses
+        return { content: generateMockResponse(userMessage), source: 'mock' }
+      }
+    } else {
+      return { content: generateMockResponse(userMessage), source: 'mock' }
+    }
+  }
+
+  // Fallback mock responses when API is not available
+  const generateMockResponse = (userMessage) => {
     switch (phase.value) {
       case 'brief':
         return generateBriefResponse(userMessage)
@@ -254,11 +291,11 @@ export function useChatbot() {
         Math.random() * (config.typingDelay.max - config.typingDelay.min)
       await new Promise(resolve => setTimeout(resolve, delay))
 
-      // Generate response based on current phase
-      const response = generateResponse(content)
+      // Generate response based on current phase (now async)
+      const response = await generateResponse(content)
 
-      // Add AI response
-      const assistantMessage = addMessage(response, 'assistant')
+      // Add AI response with source information
+      const assistantMessage = addMessage(response.content, 'assistant', response.source)
       
       return { userMessage, assistantMessage }
     } catch (error) {
@@ -267,7 +304,8 @@ export function useChatbot() {
       // Add error message
       const errorMessage = addMessage(
         'Désolé, une erreur s\'est produite. Veuillez réessayer.',
-        'assistant'
+        'assistant',
+        'mock'
       )
       
       return { userMessage, assistantMessage: errorMessage }
@@ -288,29 +326,67 @@ export function useChatbot() {
     ]
   }
 
-  // Future API integration function
-  const callChatAPI = async (message) => {
-    // TODO: Implement actual API call to OpenAI/Claude
-    // This will be added when integrating with external APIs
+  // System prompts for different phases
+  const getSystemPrompt = (phase) => {
+    switch (phase) {
+      case 'brief':
+        return `Tu es un formateur expert en communication qui aide les utilisateurs à comprendre la méthode DESC. Tu réponds de manière pédagogique et encourageante aux questions sur l'exercice de roleplay avec Thomas (collaborateur en retard). Garde tes réponses courtes et pratiques.`
+      
+      case 'roleplay':
+        return `Tu es Thomas, un collaborateur sympathique mais un peu désinvolte qui arrive régulièrement en retard aux réunions. Tu as tendance à minimiser le problème et à trouver des excuses, mais tu n'es pas agressif. Réponds de manière naturelle et un peu défensive, comme quelqu'un qui ne comprend pas vraiment pourquoi c'est un problème. Garde tes réponses courtes (2-3 phrases max).`
+      
+      case 'debrief':
+        return `Tu es un coach en communication bienveillant qui aide à analyser l'exercice. Tu poses des questions réflexives et donnes des conseils constructifs sur l'utilisation de la méthode DESC. Sois encourageant et pratique.`
+      
+      default:
+        return `Tu es un assistant d'entraînement à la communication.`
+    }
+  }
+
+  // OpenRouter API integration
+  const callChatAPI = async (userMessage, currentPhase) => {
+    if (!config.apiKey) {
+      throw new Error('Clé API OpenRouter manquante')
+    }
+
+    const systemPrompt = getSystemPrompt(currentPhase)
     
-    // Example structure:
-    // const response = await fetch(config.apiEndpoint, {
-    //   method: 'POST',
-    //   headers: {
-    //     'Content-Type': 'application/json',
-    //     'Authorization': `Bearer ${API_KEY}`
-    //   },
-    //   body: JSON.stringify({
-    //     messages: messages.value.map(msg => ({
-    //       role: msg.role,
-    //       content: msg.content
-    //     })),
-    //     max_tokens: 150,
-    //     temperature: 0.7
-    //   })
-    // })
-    
-    throw new Error('API not implemented yet')
+    // Build conversation history for context
+    const conversationHistory = messages.value
+      .slice(-6) // Last 6 messages for context
+      .map(msg => ({
+        role: msg.role === 'assistant' ? 'assistant' : 'user',
+        content: msg.content
+      }))
+
+    const response = await fetch(`${config.apiEndpoint}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${config.apiKey}`,
+        'HTTP-Referer': window.location.origin,
+        'X-Title': 'Chatbot Trainer DESC'
+      },
+      body: JSON.stringify({
+        model: config.model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...conversationHistory,
+          { role: 'user', content: userMessage }
+        ],
+        max_tokens: 150,
+        temperature: 0.7,
+        stream: false
+      })
+    })
+
+    if (!response.ok) {
+      const error = await response.text()
+      throw new Error(`Erreur API: ${response.status} - ${error}`)
+    }
+
+    const data = await response.json()
+    return data.choices[0]?.message?.content || 'Désolé, je n\'ai pas pu générer de réponse.'
   }
 
   return {
