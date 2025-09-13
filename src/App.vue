@@ -2,48 +2,55 @@
   <div class="chatbot-container">
     <!-- Header -->
     <header class="chatbot-header">
-      <h1>{{ getHeaderTitle() }}</h1>
-      <p>{{ getHeaderSubtitle() }}</p>
-      
-      <!-- Timer (only in roleplay phase) -->
-      <div v-if="phase === 'roleplay'" class="timer">
-        ⏱️ {{ formatTime(timeLeft) }}
+      <div class="header-layout">
+        <!-- Left: DESC Scores (compact, only in roleplay) -->
+        <div class="header-left">
+          <div v-if="phase === 'roleplay'" class="scores-compact">
+            <div class="score-compact">
+              <span class="score-label">D</span>
+              <div class="score-bar-mini">
+                <div class="score-fill" :style="{ width: (scores.decrire / 5 * 100) + '%' }"></div>
+              </div>
+              <span class="score-num">{{ scores.decrire.toFixed(1) }}</span>
+            </div>
+            <div class="score-compact">
+              <span class="score-label">E</span>
+              <div class="score-bar-mini">
+                <div class="score-fill" :style="{ width: (scores.exprimer / 5 * 100) + '%' }"></div>
+              </div>
+              <span class="score-num">{{ scores.exprimer.toFixed(1) }}</span>
+            </div>
+            <div class="score-compact">
+              <span class="score-label">S</span>
+              <div class="score-bar-mini">
+                <div class="score-fill" :style="{ width: (scores.specifier / 5 * 100) + '%' }"></div>
+              </div>
+              <span class="score-num">{{ scores.specifier.toFixed(1) }}</span>
+            </div>
+            <div class="score-compact">
+              <span class="score-label">C</span>
+              <div class="score-bar-mini">
+                <div class="score-fill" :style="{ width: (scores.conclure / 5 * 100) + '%' }"></div>
+              </div>
+              <span class="score-num">{{ scores.conclure.toFixed(1) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Center: Title -->
+        <div class="header-center">
+          <h1>{{ getHeaderTitle() }}</h1>
+          <p>{{ getHeaderSubtitle() }}</p>
+        </div>
+
+        <!-- Right: Timer (only in roleplay phase) -->
+        <div class="header-right">
+          <div v-if="phase === 'roleplay'" class="timer">
+            ⏱️ {{ formatTime(timeLeft) }}
+          </div>
+        </div>
       </div>
     </header>
-
-    <!-- DESC Scores (only in roleplay phase) -->
-    <div v-if="phase === 'roleplay'" class="scores-container">
-      <div class="scores-grid">
-        <div class="score-item">
-          <label>Décrire</label>
-          <div class="score-bar">
-            <div class="score-fill" :style="{ width: (scores.decrire / 5 * 100) + '%' }"></div>
-          </div>
-          <span class="score-value">{{ scores.decrire.toFixed(1) }}/5</span>
-        </div>
-        <div class="score-item">
-          <label>Exprimer</label>
-          <div class="score-bar">
-            <div class="score-fill" :style="{ width: (scores.exprimer / 5 * 100) + '%' }"></div>
-          </div>
-          <span class="score-value">{{ scores.exprimer.toFixed(1) }}/5</span>
-        </div>
-        <div class="score-item">
-          <label>Spécifier</label>
-          <div class="score-bar">
-            <div class="score-fill" :style="{ width: (scores.specifier / 5 * 100) + '%' }"></div>
-          </div>
-          <span class="score-value">{{ scores.specifier.toFixed(1) }}/5</span>
-        </div>
-        <div class="score-item">
-          <label>Conclure</label>
-          <div class="score-bar">
-            <div class="score-fill" :style="{ width: (scores.conclure / 5 * 100) + '%' }"></div>
-          </div>
-          <span class="score-value">{{ scores.conclure.toFixed(1) }}/5</span>
-        </div>
-      </div>
-    </div>
 
     <!-- Messages Area -->
     <div class="messages-container" ref="messagesContainer">

@@ -30,7 +30,7 @@ export function useChatbot() {
     {
       id: 1,
       role: 'assistant',
-      content: 'Bonjour ! Bienvenue dans votre entraînement à la communication avec la méthode DESC.\n\n📋 **Votre exercice d\'aujourd\'hui :**\nVous devez avoir une conversation difficile avec Thomas, un collaborateur qui arrive systématiquement en retard aux réunions d\'équipe.\n\n🎯 **La méthode DESC :**\n• **D**écrire : Les faits objectifs\n• **E**xprimer : Vos sentiments\n• **S**pécifier : Ce que vous voulez\n• **C**onclure : Les conséquences\n\nAvez-vous des questions sur l\'exercice avant de commencer ?',
+      content: 'Bonjour ! Bienvenue dans votre entraînement à la communication avec la méthode DESC.\n\n📋 Votre exercice d\'aujourd\'hui :\nVous devez avoir une conversation difficile avec Thomas, un collaborateur qui arrive systématiquement en retard aux réunions d\'équipe.\n\n🎯 La méthode DESC :\n• Décrire : Les faits objectifs\n• Exprimer : Vos sentiments  \n• Spécifier : Ce que vous voulez\n• Conclure : Les conséquences\n\nAvez-vous des questions sur l\'exercice avant de commencer ?',
       timestamp: new Date()
     }
   ])
@@ -95,7 +95,7 @@ export function useChatbot() {
     startTimer()
     
     addMessage(
-      "🎭 **L'exercice commence maintenant !**\n\n*Vous êtes dans votre bureau. Thomas vient d'arriver 15 minutes en retard à la réunion d'équipe. Vous décidez d'aller lui parler.*\n\n---\n\n**Thomas :** Ah salut ! Désolé pour le retard, j'ai eu un imprévu ce matin... Bon, on a raté quelque chose d'important ?",
+      "🎭 L'exercice commence maintenant !\n\nVous êtes dans votre bureau.\nThomas vient d'arriver 15 minutes en retard à la réunion d'équipe.\nVous décidez d'aller lui parler.\n\n---\n\nThomas : Ah salut ! Désolé pour le retard, j'ai eu un imprévu ce matin...\nBon, on a raté quelque chose d'important ?",
       'assistant'
     )
   }
@@ -105,7 +105,7 @@ export function useChatbot() {
     stopTimer()
     
     addMessage(
-      "⏰ **Exercice terminé !**\n\nFélicitations ! Prenons maintenant quelques minutes pour analyser votre performance.\n\n**Questions de réflexion :**\n1. Comment vous êtes-vous senti pendant cet exercice ?\n2. Quels ont été les moments les plus difficiles ?\n3. Que feriez-vous différemment ?",
+      "⏰ Exercice terminé !\n\nFélicitations ! Prenons maintenant quelques minutes pour analyser votre performance.\n\nQuestions de réflexion :\n1. Comment vous êtes-vous senti pendant cet exercice ?\n2. Quels ont été les moments les plus difficiles ?\n3. Que feriez-vous différemment ?",
       'assistant'
     )
   }
@@ -172,10 +172,10 @@ export function useChatbot() {
     }
     
     const briefResponses = [
-      "Excellente question ! La méthode DESC vous aide à structurer une conversation difficile de manière non-violente. Avez-vous déjà utilisé une approche similaire ?",
-      "C'est effectivement un défi ! L'important avec Thomas sera de rester factuel et bienveillant. Que craignez-vous le plus dans cette conversation ?",
-      "Très bonne remarque ! L'objectif n'est pas de punir Thomas mais de trouver une solution ensemble. D'autres questions sur l'exercice ?",
-      "Parfait ! Vous semblez bien comprendre l'enjeu. La clé sera de garder un ton constructif. Êtes-vous prêt(e) à commencer l'exercice ?"
+      "Excellente question !\nLa méthode DESC vous aide à structurer une conversation difficile de manière non-violente.\n\nAvez-vous déjà utilisé une approche similaire ?",
+      "C'est effectivement un défi !\nL'important avec Thomas sera de rester factuel et bienveillant.\n\nQue craignez-vous le plus dans cette conversation ?",
+      "Très bonne remarque !\nL'objectif n'est pas de punir Thomas mais de trouver une solution ensemble.\n\nD'autres questions sur l'exercice ?",
+      "Parfait ! Vous semblez bien comprendre l'enjeu.\nLa clé sera de garder un ton constructif.\n\nÊtes-vous prêt(e) à commencer l'exercice ?"
     ]
     
     return briefResponses[Math.floor(Math.random() * briefResponses.length)]
@@ -186,11 +186,11 @@ export function useChatbot() {
     analyzeMessage(userMessage)
     
     const thomasResponses = [
-      "Écoute, je sais bien que j'arrive souvent un peu en retard, mais tu sais comme c'est compliqué avec les transports... Et puis ce n'est que 10-15 minutes !",
-      "Je fais de mon mieux tu sais ! Et franchement, nos réunions commencent toujours par du blabla pas très important. Je n'ai rien raté de crucial si ?",
-      "D'accord, d'accord... Je comprends que ça puisse déranger. Mais bon, on est tous débordés non ? Qu'est-ce que tu proposes exactement ?",
-      "Hmm... Je vois que c'est important pour toi. Peut-être qu'on pourrait trouver une solution ? Mais je ne peux pas promettre d'être toujours parfait...",
-      "Ok, je reconnais que ce n'est pas idéal. Que veux-tu que je fasse concrètement ? Et si jamais j'ai vraiment un imprévu ?"
+      "Écoute, je sais bien que j'arrive souvent un peu en retard, mais tu sais comme c'est compliqué avec les transports...\n\nEt puis ce n'est que 10-15 minutes !",
+      "Je fais de mon mieux tu sais !\nEt franchement, nos réunions commencent toujours par du blabla pas très important.\n\nJe n'ai rien raté de crucial si ?",
+      "D'accord, d'accord... Je comprends que ça puisse déranger.\nMais bon, on est tous débordés non ?\n\nQu'est-ce que tu proposes exactement ?",
+      "Hmm... Je vois que c'est important pour toi.\nPeut-être qu'on pourrait trouver une solution ?\n\nMais je ne peux pas promettre d'être toujours parfait...",
+      "Ok, je reconnais que ce n'est pas idéal.\nQue veux-tu que je fasse concrètement ?\n\nEt si jamais j'ai vraiment un imprévu ?"
     ]
     
     return thomasResponses[Math.floor(Math.random() * thomasResponses.length)]
@@ -198,10 +198,10 @@ export function useChatbot() {
 
   const generateDebriefResponse = (userMessage) => {
     const debriefResponses = [
-      "Très intéressant ! Cette prise de conscience est importante pour progresser. Regardons maintenant vos scores DESC...",
-      "Excellente réflexion ! L'auto-évaluation fait partie du processus d'apprentissage. Analysons votre performance ensemble.",
-      "C'est une analyse très juste. Chaque conversation difficile nous apprend quelque chose. Voici maintenant votre bilan personnalisé...",
-      `**📊 Votre bilan DESC :**\n\n• **Décrire** (${scores.decrire.toFixed(1)}/5) : ${getScoreComment('decrire')}\n• **Exprimer** (${scores.exprimer.toFixed(1)}/5) : ${getScoreComment('exprimer')}\n• **Spécifier** (${scores.specifier.toFixed(1)}/5) : ${getScoreComment('specifier')}\n• **Conclure** (${scores.conclure.toFixed(1)}/5) : ${getScoreComment('conclure')}\n\n${getPersonalizedRecommendations()}`
+      "Très intéressant !\nCette prise de conscience est importante pour progresser.\n\nRegardons maintenant vos scores DESC...",
+      "Excellente réflexion !\nL'auto-évaluation fait partie du processus d'apprentissage.\n\nAnalysons votre performance ensemble.",
+      "C'est une analyse très juste.\nChaque conversation difficile nous apprend quelque chose.\n\nVoici maintenant votre bilan personnalisé...",
+      `📊 Votre bilan DESC :\n\n• Décrire (${scores.decrire.toFixed(1)}/5) : ${getScoreComment('decrire')}\n• Exprimer (${scores.exprimer.toFixed(1)}/5) : ${getScoreComment('exprimer')}\n• Spécifier (${scores.specifier.toFixed(1)}/5) : ${getScoreComment('specifier')}\n• Conclure (${scores.conclure.toFixed(1)}/5) : ${getScoreComment('conclure')}\n\n${getPersonalizedRecommendations()}`
     ]
     
     return debriefResponses[Math.floor(Math.random() * debriefResponses.length)]
@@ -219,23 +219,23 @@ export function useChatbot() {
     const recommendations = []
     
     if (scores.decrire < 3) {
-      recommendations.push("💡 **Décrire :** Concentrez-vous sur les faits objectifs et observables")
+      recommendations.push("💡 Décrire : Concentrez-vous sur les faits objectifs et observables")
     }
     if (scores.exprimer < 3) {
-      recommendations.push("💡 **Exprimer :** N'hésitez pas à partager vos ressentis avec des 'je' plutôt que des 'tu'")
+      recommendations.push("💡 Exprimer : N'hésitez pas à partager vos ressentis avec des 'je' plutôt que des 'tu'")
     }
     if (scores.specifier < 3) {
-      recommendations.push("💡 **Spécifier :** Soyez plus précis sur ce que vous attendez comme changement")
+      recommendations.push("💡 Spécifier : Soyez plus précis sur ce que vous attendez comme changement")
     }
     if (scores.conclure < 3) {
-      recommendations.push("💡 **Conclure :** Expliquez les bénéfices d'un changement positif")
+      recommendations.push("💡 Conclure : Expliquez les bénéfices d'un changement positif")
     }
     
     if (recommendations.length === 0) {
-      return "🎉 **Félicitations !** Vous maîtrisez bien la méthode DESC. Continuez à pratiquer pour devenir expert !"
+      return "🎉 Félicitations ! Vous maîtrisez bien la méthode DESC.\nContinuez à pratiquer pour devenir expert !"
     }
     
-    return "**🎯 Recommandations :**\n" + recommendations.join("\n")
+    return "🎯 Recommandations :\n" + recommendations.join("\n")
   }
 
   // Send message and get AI response
