@@ -192,71 +192,26 @@ export function useChatbot() {
         return { content: cleanedResponse, source: 'ai' }
       } catch (error) {
         console.error('Erreur API:', error)
-        // Fallback to mock responses
-        return { content: generateMockResponse(userMessage), source: 'mock' }
+        // Show error message when API fails
+        return { content: generateErrorMessage(userMessage), source: 'mock' }
       }
     } else {
-      return { content: generateMockResponse(userMessage), source: 'mock' }
+      return { content: generateErrorMessage(userMessage), source: 'mock' }
     }
   }
 
-  // Fallback mock responses when API is not available
-  const generateMockResponse = (userMessage) => {
-    switch (phase.value) {
-      case 'brief':
-        return generateBriefResponse(userMessage)
-      case 'roleplay':
-        return generateRoleplayResponse(userMessage)
-      case 'debrief':
-        return generateDebriefResponse(userMessage)
-      default:
-        return "Je ne comprends pas dans quelle phase nous sommes."
-    }
-  }
-
-  const generateBriefResponse = (userMessage) => {
-    messageCount.value++
-    
-    // Check if can start exercise (after 2-3 exchanges)
-    if (messageCount.value >= 2) {
-      canStartExercise.value = true
-    }
-    
-    const briefResponses = [
-      "Excellente question !\nLa méthode DESC vous aide à structurer une conversation difficile de manière non-violente.\n\nAvez-vous déjà utilisé une approche similaire ?",
-      "C'est effectivement un défi !\nL'important avec Thomas sera de rester factuel et bienveillant.\n\nQue craignez-vous le plus dans cette conversation ?",
-      "Très bonne remarque !\nL'objectif n'est pas de punir Thomas mais de trouver une solution ensemble.\n\nD'autres questions sur l'exercice ?",
-      "Parfait ! Vous semblez bien comprendre l'enjeu.\nLa clé sera de garder un ton constructif.\n\nÊtes-vous prêt(e) à commencer l'exercice ?"
+  // Error messages when API is not available
+  const generateErrorMessage = (userMessage) => {
+    const errorMessages = [
+      "❌ Pas d'accès à internet.\nImpossible de contacter l'IA pour cette phase de l'exercice.",
+      "🔌 L'IA ne répond pas actuellement.\nVeuillez vérifier votre connexion ou réessayer plus tard.",
+      "⚠️ Service IA indisponible.\nLa simulation interactive nécessite une connexion active.",
+      "🤖 Erreur de connexion à l'IA.\nL'exercice DESC interactif n'est pas disponible hors ligne."
     ]
     
-    return briefResponses[Math.floor(Math.random() * briefResponses.length)]
+    return errorMessages[Math.floor(Math.random() * errorMessages.length)]
   }
 
-  const generateRoleplayResponse = (userMessage) => {
-    // Analyze user message for DESC elements
-    analyzeMessage(userMessage)
-    
-    const thomasResponses = [
-      "Écoute, je sais bien que j'arrive souvent un peu en retard, mais tu sais comme c'est compliqué avec les transports...\n\nEt puis ce n'est que 10-15 minutes !",
-      "Je fais de mon mieux tu sais !\nEt franchement, nos réunions commencent toujours par du blabla pas très important.\n\nJe n'ai rien raté de crucial si ?",
-      "D'accord, d'accord... Je comprends que ça puisse déranger.\nMais bon, on est tous débordés non ?\n\nQu'est-ce que tu proposes exactement ?",
-      "Hmm... Je vois que c'est important pour toi.\nPeut-être qu'on pourrait trouver une solution ?\n\nMais je ne peux pas promettre d'être toujours parfait...",
-      "Ok, je reconnais que ce n'est pas idéal.\nQue veux-tu que je fasse concrètement ?\n\nEt si jamais j'ai vraiment un imprévu ?"
-    ]
-    
-    return thomasResponses[Math.floor(Math.random() * thomasResponses.length)]
-  }
-
-  const generateDebriefResponse = (userMessage) => {
-    const debriefResponses = [
-      "Très intéressant !\nCette prise de conscience est importante pour progresser.\n\nRegardons maintenant vos scores DESC...",
-      "Excellente réflexion !\nL'auto-évaluation fait partie du processus d'apprentissage.\n\nAnalysons votre performance ensemble.",
-      "C'est une analyse très juste.\nChaque conversation difficile nous apprend quelque chose.\n\nVoici maintenant votre bilan personnalisé...",
-      `📊 Votre bilan DESC :\n\n• Décrire (${scores.decrire.toFixed(1)}/5) : ${getScoreComment('decrire')}\n• Exprimer (${scores.exprimer.toFixed(1)}/5) : ${getScoreComment('exprimer')}\n• Spécifier (${scores.specifier.toFixed(1)}/5) : ${getScoreComment('specifier')}\n• Conclure (${scores.conclure.toFixed(1)}/5) : ${getScoreComment('conclure')}\n\n${getPersonalizedRecommendations()}`
-    ]
-    
-    return debriefResponses[Math.floor(Math.random() * debriefResponses.length)]
-  }
 
   const getScoreComment = (dimension) => {
     const score = scores[dimension]
