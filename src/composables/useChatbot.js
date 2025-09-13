@@ -155,14 +155,28 @@ export function useChatbot() {
     Object.assign(scores, newScores)
   }
 
-  // Generate responses based on phase (now using AI)
+  // Clean markdown formatting from text
+  const cleanMarkdown = (text) => {
+    return text
+      .replace(/\*\*(.*?)\*\*/g, '$1')  // Remove **bold**
+      .replace(/\*(.*?)\*/g, '$1')      // Remove *italic*
+      .replace(/__(.*?)__/g, '$1')      // Remove __underline__
+      .replace(/_(.*?)_/g, '$1')        // Remove _underline_
+      .replace(/`(.*?)`/g, '$1')        // Remove `code`
+      .replace(/~~(.*?)~~/g, '$1')      // Remove ~~strikethrough~~
+      .replace(/^\s*[-*+]\s+/gm, '• ')  // Convert markdown lists to bullets
+      .replace(/^\s*\d+\.\s+/gm, '• ')  // Convert numbered lists to bullets
+      .replace(/^\s*#{1,6}\s+/gm, '')   // Remove headers
+  }
+
+  // Generate AI response using OpenRouter API
   const generateResponse = async (userMessage) => {
-    // Use AI if API key is available, fallback to mock responses
-    if (config.apiKey && config.apiKey !== 'your_openrouter_key_here') {
+    if (config.apiKey) {
       try {
-        const response = await callChatAPI(userMessage, phase.value)
+        const rawResponse = await callChatAPI(userMessage)
+        const cleanedResponse = cleanMarkdown(rawResponse)
         
-        // For roleplay phase, still analyze message for scoring
+        // Update scores based on response content (for roleplay phase)
         if (phase.value === 'roleplay') {
           analyzeMessage(userMessage)
         }
@@ -175,7 +189,7 @@ export function useChatbot() {
           }
         }
         
-        return { content: response, source: 'ai' }
+        return { content: cleanedResponse, source: 'ai' }
       } catch (error) {
         console.error('Erreur API:', error)
         // Fallback to mock responses
