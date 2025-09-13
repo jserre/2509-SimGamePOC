@@ -2,9 +2,48 @@
   <div class="chatbot-container">
     <!-- Header -->
     <header class="chatbot-header">
-      <h1>Chatbot Trainer</h1>
-      <p>Démonstrateur d'entraînement à la communication</p>
+      <h1>{{ getHeaderTitle() }}</h1>
+      <p>{{ getHeaderSubtitle() }}</p>
+      
+      <!-- Timer (only in roleplay phase) -->
+      <div v-if="phase === 'roleplay'" class="timer">
+        ⏱️ {{ formatTime(timeLeft) }}
+      </div>
     </header>
+
+    <!-- DESC Scores (only in roleplay phase) -->
+    <div v-if="phase === 'roleplay'" class="scores-container">
+      <div class="scores-grid">
+        <div class="score-item">
+          <label>Décrire</label>
+          <div class="score-bar">
+            <div class="score-fill" :style="{ width: (scores.decrire / 5 * 100) + '%' }"></div>
+          </div>
+          <span class="score-value">{{ scores.decrire.toFixed(1) }}/5</span>
+        </div>
+        <div class="score-item">
+          <label>Exprimer</label>
+          <div class="score-bar">
+            <div class="score-fill" :style="{ width: (scores.exprimer / 5 * 100) + '%' }"></div>
+          </div>
+          <span class="score-value">{{ scores.exprimer.toFixed(1) }}/5</span>
+        </div>
+        <div class="score-item">
+          <label>Spécifier</label>
+          <div class="score-bar">
+            <div class="score-fill" :style="{ width: (scores.specifier / 5 * 100) + '%' }"></div>
+          </div>
+          <span class="score-value">{{ scores.specifier.toFixed(1) }}/5</span>
+        </div>
+        <div class="score-item">
+          <label>Conclure</label>
+          <div class="score-bar">
+            <div class="score-fill" :style="{ width: (scores.conclure / 5 * 100) + '%' }"></div>
+          </div>
+          <span class="score-value">{{ scores.conclure.toFixed(1) }}/5</span>
+        </div>
+      </div>
+    </div>
 
     <!-- Messages Area -->
     <div class="messages-container" ref="messagesContainer">
@@ -35,6 +74,19 @@
       </div>
     </div>
 
+    <!-- Action Buttons -->
+    <div v-if="phase === 'brief' && canStartExercise" class="action-container">
+      <button @click="startExercise" class="action-button primary">
+        🎭 Commencer l'exercice
+      </button>
+    </div>
+    
+    <div v-if="phase === 'roleplay'" class="action-container">
+      <button @click="endExercise" class="action-button secondary">
+        ⏹️ Terminer l'exercice
+      </button>
+    </div>
+
     <!-- Input Area -->
     <div class="input-container">
       <form @submit.prevent="sendMessage" class="input-form">
@@ -42,7 +94,7 @@
           v-model="currentMessage"
           @keydown.enter.exact.prevent="sendMessage"
           @keydown.enter.shift.exact="addNewLine"
-          placeholder="Tapez votre message ici..."
+          :placeholder="getInputPlaceholder()"
           class="message-input"
           :disabled="isTyping"
           ref="messageInput"
@@ -62,18 +114,22 @@
 
 <script setup>
 import { ref, nextTick, onMounted } from 'vue'
+import { useChatbot } from './composables/useChatbot.js'
 
-// Reactive state
-const messages = ref([
-  {
-    id: 1,
-    role: 'assistant',
-    content: 'Bonjour ! Je suis votre assistant d\'entraînement à la communication. Comment puis-je vous aider aujourd\'hui ?'
-  }
-])
+// Use the chatbot composable
+const {
+  messages,
+  isTyping,
+  phase,
+  timeLeft,
+  scores,
+  canStartExercise,
+  startExercise,
+  endExercise,
+  sendMessage: sendChatMessage
+} = useChatbot()
 
 const currentMessage = ref('')
-const isTyping = ref(false)
 const messagesContainer = ref(null)
 const messageInput = ref(null)
 
@@ -101,18 +157,59 @@ const addNewLine = () => {
   nextTick(autoResizeTextarea)
 }
 
+// Helper functions for dynamic content
+const getHeaderTitle = () => {
+  switch (phase.value) {
+    case 'brief':
+      return 'Chatbot Trainer - Briefing'
+    case 'roleplay':
+      return '🎭 Exercice en cours'
+    case 'debrief':
+      return '📊 Analyse & Débrief'
+    default:
+      return 'Chatbot Trainer'
+  }
+}
+
+const getHeaderSubtitle = () => {
+  switch (phase.value) {
+    case 'brief':
+      return 'Préparation de votre exercice DESC'
+    case 'roleplay':
+      return 'Conversation avec Thomas'
+    case 'debrief':
+      return 'Bilan de votre performance'
+    default:
+      return 'Démonstrateur d\'entraînement à la communication'
+  }
+}
+
+const getInputPlaceholder = () => {
+  switch (phase.value) {
+    case 'brief':
+      return 'Posez vos questions sur l\'exercice...'
+    case 'roleplay':
+      return 'Répondez à Thomas en utilisant la méthode DESC...'
+    case 'debrief':
+      return 'Partagez vos réflexions sur l\'exercice...'
+    default:
+      return 'Tapez votre message ici...'
+  }
+}
+
+const formatTime = (seconds) => {
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  return `${mins}:${secs.toString().padStart(2, '0')}`
+}
+
 // Send message function
 const sendMessage = async () => {
   const message = currentMessage.value.trim()
   if (!message || isTyping.value) return
 
-  // Add user message
-  const userMessage = {
-    id: Date.now(),
-    role: 'user',
-    content: message
-  }
-  messages.value.push(userMessage)
+  // Use the composable's sendMessage method
+  await sendChatMessage(message)
   currentMessage.value = ''
 
   // Reset textarea height
@@ -120,31 +217,6 @@ const sendMessage = async () => {
     messageInput.value.style.height = 'auto'
   }
 
-  scrollToBottom()
-
-  // Simulate AI response (replace with actual API call later)
-  isTyping.value = true
-  
-  // Simulate typing delay
-  await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000))
-  
-  // Generate mock response
-  const responses = [
-    "C'est une excellente question ! Pouvez-vous me donner plus de contexte ?",
-    "Je comprends votre point de vue. Avez-vous envisagé cette approche différente ?",
-    "Intéressant ! Cela me rappelle une situation similaire...",
-    "Merci pour cette information. Comment vous sentez-vous par rapport à cette situation ?",
-    "C'est un défi courant en communication. Voici quelques stratégies qui pourraient vous aider..."
-  ]
-  
-  const assistantMessage = {
-    id: Date.now() + 1,
-    role: 'assistant',
-    content: responses[Math.floor(Math.random() * responses.length)]
-  }
-  
-  messages.value.push(assistantMessage)
-  isTyping.value = false
   scrollToBottom()
 
   // Focus back to input
