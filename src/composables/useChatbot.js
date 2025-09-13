@@ -1,4 +1,8 @@
 import { ref, reactive } from 'vue'
+import briefPrompt from '../../prompts/brief.js'
+import roleplayPrompt from '../../prompts/roleplay.js'
+import debriefPrompt from '../../prompts/debrief.js'
+import defaultPrompt from '../../prompts/default.js'
 
 /**
  * Composable for managing chatbot functionality with DESC exercise phases
@@ -43,7 +47,7 @@ export function useChatbot() {
   const config = reactive({
     apiEndpoint: import.meta.env.VITE_OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
     apiKey: import.meta.env.VITE_OPENROUTER_API_KEY,
-    model: import.meta.env.VITE_OPENROUTER_MODEL || 'anthropic/claude-3.5-sonnet',
+    model: import.meta.env.VITE_OPENROUTER_MODEL || 'anthropic/claude-sonnet-4',
     maxMessages: 100,
     typingDelay: { min: 800, max: 2000 }
   })
@@ -296,16 +300,16 @@ export function useChatbot() {
   const getSystemPrompt = (phase) => {
     switch (phase) {
       case 'brief':
-        return `Tu es un formateur expert en communication qui aide les utilisateurs à comprendre la méthode DESC. Tu réponds de manière pédagogique et encourageante aux questions sur l'exercice de roleplay avec Thomas (collaborateur en retard). Garde tes réponses courtes et pratiques.`
+        return briefPrompt
       
       case 'roleplay':
-        return `Tu es Thomas, un collaborateur sympathique mais un peu désinvolte qui arrive régulièrement en retard aux réunions. Tu as tendance à minimiser le problème et à trouver des excuses, mais tu n'es pas agressif. Réponds de manière naturelle et un peu défensive, comme quelqu'un qui ne comprend pas vraiment pourquoi c'est un problème. Garde tes réponses courtes (2-3 phrases max).`
+        return roleplayPrompt
       
       case 'debrief':
-        return `Tu es un coach en communication bienveillant qui aide à analyser l'exercice. Tu poses des questions réflexives et donnes des conseils constructifs sur l'utilisation de la méthode DESC. Sois encourageant et pratique.`
+        return debriefPrompt
       
       default:
-        return `Tu es un assistant d'entraînement à la communication.`
+        return defaultPrompt
     }
   }
 
