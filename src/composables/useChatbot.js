@@ -22,7 +22,7 @@ export function useChatbot() {
 
   // Exercise state
   const exerciseStarted = ref(false)
-  const canStartExercise = ref(false)
+  const canStartExercise = ref(true)
   const messageCount = ref(0)
 
   // Reactive state
@@ -181,12 +181,9 @@ export function useChatbot() {
           analyzeMessage(userMessage)
         }
         
-        // For brief phase, check if can start exercise
+        // Track message count for brief phase
         if (phase.value === 'brief') {
           messageCount.value++
-          if (messageCount.value >= 2) {
-            canStartExercise.value = true
-          }
         }
         
         return { content: cleanedResponse, source: 'ai' }
