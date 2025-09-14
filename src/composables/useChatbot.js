@@ -344,8 +344,8 @@ export function useChatbot() {
           ...conversationHistory,
           { role: 'user', content: userMessage }
         ],
-        max_tokens: 500,
-        temperature: 0.7,
+        max_tokens: currentPhase === 'brief' ? 150 : 300,
+        temperature: currentPhase === 'brief' ? 0.1 : 0.7,
         stream: false
       })
     })
