@@ -313,6 +313,34 @@ export function useChatbot() {
     }
   }
 
+  // Max tokens configuration per phase
+  const getMaxTokens = (phase) => {
+    switch (phase) {
+      case 'brief':
+        return 300      // Marge pour éviter troncature + prompt contrôle la brièveté
+      case 'roleplay':
+        return 500      // Thomas peut s'exprimer librement
+      case 'debrief':
+        return 400      // Analyses complètes sans coupure
+      default:
+        return 300
+    }
+  }
+
+  // Temperature configuration per phase  
+  const getTemperature = (phase) => {
+    switch (phase) {
+      case 'brief':
+        return 0.1      // Très prévisible et discipliné
+      case 'roleplay':
+        return 0.8      // Thomas spontané et naturel
+      case 'debrief':
+        return 0.4      // Analyses réfléchies mais variées
+      default:
+        return 0.7
+    }
+  }
+
   // OpenRouter API integration
   const callChatAPI = async (userMessage, currentPhase) => {
     if (!config.apiKey) {
@@ -344,8 +372,8 @@ export function useChatbot() {
           ...conversationHistory,
           { role: 'user', content: userMessage }
         ],
-        max_tokens: currentPhase === 'brief' ? 150 : 300,
-        temperature: currentPhase === 'brief' ? 0.1 : 0.7,
+        max_tokens: getMaxTokens(currentPhase),
+        temperature: getTemperature(currentPhase),
         stream: false
       })
     })
