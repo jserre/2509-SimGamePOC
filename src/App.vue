@@ -71,7 +71,6 @@
       <div v-if="isTyping" class="message assistant">
         <div class="message-avatar">A</div>
         <div class="message-content typing-indicator">
-          <span>En train d'écrire</span>
           <div class="typing-dots">
             <div class="typing-dot"></div>
             <div class="typing-dot"></div>
