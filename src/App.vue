@@ -80,22 +80,28 @@
       </div>
     </div>
 
-    <!-- Action Buttons -->
-    <div v-if="phase === 'brief' && canStartExercise" class="action-container">
-      <button @click="startExercise" class="action-button primary">
-        🎭 Commencer l'exercice
-      </button>
-    </div>
-    
-    <div v-if="phase === 'roleplay'" class="action-container">
-      <button @click="endExercise" class="action-button secondary">
-        ⏹️ Terminer l'exercice
-      </button>
-    </div>
-
     <!-- Input Area -->
     <div class="input-container">
       <form @submit.prevent="sendMessage" class="input-form">
+        <!-- Action Button (left side) -->
+        <button
+          v-if="phase === 'brief' && canStartExercise"
+          @click="startExercise"
+          type="button"
+          class="action-button primary"
+        >
+          🎭 Commencer l'exercice
+        </button>
+        
+        <button
+          v-if="phase === 'roleplay'"
+          @click="endExercise"
+          type="button"
+          class="action-button secondary"
+        >
+          ⏹️ Terminer l'exercice
+        </button>
+
         <textarea
           v-model="currentMessage"
           @keydown.enter.exact.prevent="sendMessage"
@@ -119,7 +125,7 @@
 </template>
 
 <script setup>
-import { ref, nextTick, onMounted } from 'vue'
+import { ref, nextTick, onMounted, watch } from 'vue'
 import { useChatbot } from './composables/useChatbot.js'
 
 // Use the chatbot composable
@@ -149,10 +155,19 @@ const autoResizeTextarea = () => {
 }
 
 // Scroll to bottom of messages
-const scrollToBottom = () => {
+const scrollToBottom = (ensureTypingVisible = false) => {
   nextTick(() => {
     if (messagesContainer.value) {
-      messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+      if (ensureTypingVisible) {
+        // When typing indicator is shown, scroll with some margin to ensure it's fully visible
+        const container = messagesContainer.value
+        const scrollHeight = container.scrollHeight
+        const clientHeight = container.clientHeight
+        const margin = 80 // Add margin to ensure typing indicator is fully visible
+        container.scrollTop = Math.max(0, scrollHeight - clientHeight + margin)
+      } else {
+        messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+      }
     }
   })
 }
@@ -241,6 +256,22 @@ const sendMessage = async () => {
     messageInput.value && messageInput.value.focus()
   })
 }
+
+// Watch for typing state changes to ensure proper scrolling
+watch(isTyping, (newTyping) => {
+  if (newTyping) {
+    // When typing starts, ensure the typing indicator is fully visible
+    setTimeout(() => scrollToBottom(true), 100)
+  } else {
+    // When typing ends, scroll to show the new message
+    setTimeout(() => scrollToBottom(), 100)
+  }
+})
+
+// Watch for new messages to auto-scroll
+watch(messages, () => {
+  nextTick(() => scrollToBottom())
+}, { deep: true })
 
 // Watch for textarea changes to auto-resize
 const handleInput = () => {
