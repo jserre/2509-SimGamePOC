@@ -2,7 +2,6 @@ import { ref, reactive } from 'vue'
 import briefPrompt from '../../prompts/brief.js'
 import roleplayPrompt from '../../prompts/roleplay.js'
 import debriefPrompt from '../../prompts/debrief.js'
-import defaultPrompt from '../../prompts/default.js'
 
 /**
  * Composable for managing chatbot functionality with DESC exercise phases
@@ -177,7 +176,7 @@ export function useChatbot() {
   const generateResponse = async (userMessage) => {
     if (config.apiKey) {
       try {
-        const rawResponse = await callChatAPI(userMessage)
+        const rawResponse = await callChatAPI(userMessage, phase.value)
         const cleanedResponse = cleanMarkdown(rawResponse)
         
         // Update scores based on response content (for roleplay phase)
@@ -300,16 +299,33 @@ export function useChatbot() {
   const getSystemPrompt = (phase) => {
     switch (phase) {
       case 'brief':
+        if (!briefPrompt) {
+          const error = `❌ ERREUR CRITIQUE: briefPrompt est undefined ou vide`
+          console.error(error)
+          throw new Error(error)
+        }
         return briefPrompt
       
       case 'roleplay':
+        if (!roleplayPrompt) {
+          const error = `❌ ERREUR CRITIQUE: roleplayPrompt est undefined ou vide`
+          console.error(error)
+          throw new Error(error)
+        }
         return roleplayPrompt
       
       case 'debrief':
+        if (!debriefPrompt) {
+          const error = `❌ ERREUR CRITIQUE: debriefPrompt est undefined ou vide`
+          console.error(error)
+          throw new Error(error)
+        }
         return debriefPrompt
       
       default:
-        return defaultPrompt
+        const error = `❌ ERREUR CRITIQUE: Phase inconnue "${phase}". Phases valides: brief, roleplay, debrief`
+        console.error(error)
+        throw new Error(error)
     }
   }
 
@@ -349,6 +365,14 @@ export function useChatbot() {
     }
 
     const systemPrompt = getSystemPrompt(currentPhase)
+    
+    // DEBUG: Log du prompt utilisé
+    console.log('🔍 DEBUG - Phase:', currentPhase)
+    console.log('🔍 DEBUG - briefPrompt exists:', !!briefPrompt)
+    console.log('🔍 DEBUG - briefPrompt content:', briefPrompt ? briefPrompt.substring(0, 100) : 'UNDEFINED')
+    console.log('🔍 DEBUG - Prompt utilisé:', systemPrompt.substring(0, 200) + '...')
+    console.log('🔍 DEBUG - Max tokens:', getMaxTokens(currentPhase))
+    console.log('🔍 DEBUG - Temperature:', getTemperature(currentPhase))
     
     // Build conversation history for context
     const conversationHistory = messages.value
