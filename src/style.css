@@ -322,6 +322,39 @@ body {
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
 }
 
+/* Off-topic warning messages */
+.message.off-topic .message-content {
+  background: #fff3cd;
+  border-left: 4px solid #ffc107;
+  color: #856404;
+}
+
+/* Coach button */
+.coach-button {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.coach-button:hover {
+  background: #0056b3;
+  transform: scale(1.1);
+}
+
+.message.assistant {
+  position: relative;
+}
+
 @media (max-width: 768px) {
   .messages-container {
     padding: 1rem;

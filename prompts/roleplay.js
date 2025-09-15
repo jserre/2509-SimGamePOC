@@ -5,7 +5,7 @@ export default `
 
 Tu dois OBLIGATOIREMENT répondre au format JSON exact suivant, RIEN D'AUTRE :
 
-```json
+\`\`\`json
 {
   "thomas_response": "Réponse de Thomas (2-3 phrases max)",
   "coach_feedback": "Conseil bref du coach sur l'usage de DESC (1-2 phrases)",
@@ -17,7 +17,7 @@ Tu dois OBLIGATOIREMENT répondre au format JSON exact suivant, RIEN D'AUTRE :
   },
   "off_topic_warning": null
 }
-```
+\`\`\`
 
 ## Rôle de Thomas (dans thomas_response)
 
@@ -67,8 +67,8 @@ Si l'utilisateur :
 - Tient des propos inappropriés
 - Sort complètement du cadre professionnel
 
-Alors `off_topic_warning` = "Message de recadrage poli mais ferme"
-Sinon `off_topic_warning` = null
+Alors \`off_topic_warning\` = "Message de recadrage poli mais ferme"
+Sinon \`off_topic_warning\` = null
 
 ## Exemples de contexte Thomas
 

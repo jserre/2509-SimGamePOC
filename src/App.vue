@@ -68,7 +68,7 @@
       <div
         v-for="message in messages"
         :key="message.id"
-        :class="['message', message.role, message.source]"
+        :class="['message', message.role, message.source, { 'off-topic': message.isOffTopic }]"
       >
         <div class="message-avatar">
           {{ message.role === 'user' ? 'U' : getAssistantAvatar(message.source) }}
@@ -76,6 +76,15 @@
         <div class="message-content">
           {{ message.content }}
         </div>
+        <!-- Coach button for Thomas messages -->
+        <button 
+          v-if="message.isThomas && message.coachFeedback"
+          @click="showCoachFeedback(message.coachFeedback)"
+          class="coach-button"
+          title="Voir le conseil du coach"
+        >
+          🎯
+        </button>
       </div>
 
       <!-- Typing Indicator -->
@@ -296,6 +305,11 @@ const getPromptFileName = () => {
     case 'debrief': return 'debrief.js'
     default: return 'default.js'
   }
+}
+
+// Show coach feedback in popup
+const showCoachFeedback = (feedback) => {
+  alert(`🎯 Conseil du Coach\n\n${feedback}`)
 }
 
 // Send message function

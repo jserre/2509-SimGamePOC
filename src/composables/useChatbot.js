@@ -52,15 +52,17 @@ export function useChatbot() {
     typingDelay: { min: 800, max: 2000 }
   })
 
-  // Add a new message to the chat
-  const addMessage = (content, role = 'user', source = 'user') => {
+  // Add message to conversation
+  const addMessage = (content, role, source = 'user', extraProps = {}) => {
     const message = {
       id: Date.now() + Math.random(),
-      role,
       content,
-      timestamp: new Date(),
-      source // 'ai', 'mock', or 'user'
+      role,
+      source,
+      timestamp: new Date().toISOString(),
+      ...extraProps
     }
+    console.log('🔍 Adding message:', message)
     messages.value.push(message)
     
     // Keep only the last maxMessages
@@ -165,28 +167,140 @@ export function useChatbot() {
       .replace(/^\s*#{1,6}\s+/gm, '')   // Remove headers
   }
 
+  // Parse and validate JSON response for roleplay phase
+  const parseRoleplayResponse = async (rawResponse, userMessage, retryCount = 0, allAttempts = []) => {
+    // Log all attempts
+    allAttempts.push({
+      attempt: retryCount + 1,
+      response: rawResponse.substring(0, 300) + (rawResponse.length > 300 ? '...' : ''),
+      timestamp: new Date().toLocaleTimeString()
+    })
+    
+    console.log(`🔍 JSON Parse Attempt ${retryCount + 1}:`)
+    console.log('Raw response:', rawResponse.substring(0, 200) + '...')
+    
+    try {
+      // Clean the response: remove markdown code blocks
+      let cleanedResponse = rawResponse.trim()
+      
+      // Remove markdown code blocks if present
+      if (cleanedResponse.startsWith('```json') || cleanedResponse.startsWith('```')) {
+        cleanedResponse = cleanedResponse.replace(/^```(?:json)?\s*/, '').replace(/```\s*$/, '').trim()
+      }
+      
+      console.log('Cleaned response:', cleanedResponse.substring(0, 200) + '...')
+      
+      // Try to parse JSON
+      const jsonResponse = JSON.parse(cleanedResponse)
+      
+      // Validate required fields
+      if (!jsonResponse.thomas_response || 
+          !jsonResponse.coach_feedback || 
+          !jsonResponse.desc_evaluation ||
+          typeof jsonResponse.off_topic_warning === 'undefined') {
+        throw new Error('Missing required JSON fields')
+      }
+      
+      // Validate desc_evaluation structure
+      const descEval = jsonResponse.desc_evaluation
+      if (typeof descEval.decrire !== 'number' || typeof descEval.exprimer !== 'number' || 
+          typeof descEval.specifier !== 'number' || typeof descEval.conclure !== 'number') {
+        throw new Error('Invalid desc_evaluation structure')
+      }
+      
+      console.log('✅ JSON Parse Success!')
+      return jsonResponse
+      
+    } catch (error) {
+      console.error(`❌ JSON Parse Error (attempt ${retryCount + 1}):`, error.message)
+      
+      if (retryCount < 2) { // Max 3 attempts (0, 1, 2)
+        console.log(`🔄 Retrying with format warning...`)
+        
+        // Retry with format warning
+        const retryPrompt = `ERREUR: Votre réponse précédente n'était pas au format JSON valide.
+
+ERREUR DÉTECTÉE: ${error.message}
+
+RAPPEL CRITIQUE: Vous DEVEZ répondre UNIQUEMENT avec un JSON valide, SANS balises markdown, RIEN D'AUTRE.
+
+Format OBLIGATOIRE (SANS \`\`\`json):
+{
+  "thomas_response": "Réponse de Thomas ici",
+  "coach_feedback": "Conseil du coach ici", 
+  "desc_evaluation": {
+    "decrire": 3,
+    "exprimer": 2,
+    "specifier": 1,
+    "conclure": 0
+  },
+  "off_topic_warning": null
+}
+
+Message utilisateur original: "${userMessage}"
+
+Répondez maintenant UNIQUEMENT avec le JSON, SANS balises markdown:`
+
+        const retryResponse = await callChatAPI(retryPrompt, phase.value)
+        return await parseRoleplayResponse(retryResponse, userMessage, retryCount + 1, allAttempts)
+      } else {
+        // Final failure after 3 attempts - log all attempts
+        console.error('🚨 ÉCHEC DÉFINITIF - Historique complet des tentatives:')
+        allAttempts.forEach(attempt => {
+          console.error(`Tentative ${attempt.attempt} (${attempt.timestamp}):`, attempt.response)
+        })
+        
+        throw new Error(`❌ ERREUR DÉFINITIVE: L'IA n'a pas respecté le format JSON après 3 tentatives.\n\nHistorique des tentatives:\n${allAttempts.map(a => `${a.attempt}. ${a.response.substring(0, 100)}...`).join('\n')}`)
+      }
+    }
+  }
+
   // Generate AI response using OpenRouter API
   const generateResponse = async (userMessage) => {
     if (config.apiKey) {
       try {
         const rawResponse = await callChatAPI(userMessage, phase.value)
-        const cleanedResponse = cleanMarkdown(rawResponse)
         
-        // Update scores based on response content (for roleplay phase)
+        // Handle roleplay phase with JSON parsing
         if (phase.value === 'roleplay') {
-          analyzeMessage(userMessage)
+          const jsonResponse = await parseRoleplayResponse(rawResponse, userMessage)
+          
+          // Handle off-topic warning
+          if (jsonResponse.off_topic_warning) {
+            return { 
+              content: jsonResponse.off_topic_warning, 
+              source: 'warning',
+              isOffTopic: true
+            }
+          }
+          
+          // Update scores from JSON evaluation
+          scores.decrire = jsonResponse.desc_evaluation.decrire
+          scores.exprimer = jsonResponse.desc_evaluation.exprimer
+          scores.specifier = jsonResponse.desc_evaluation.specifier
+          scores.conclure = jsonResponse.desc_evaluation.conclure
+          
+          // Return Thomas response with coach feedback attached
+          return { 
+            content: jsonResponse.thomas_response, 
+            source: 'ai',
+            coachFeedback: jsonResponse.coach_feedback,
+            isThomas: true
+          }
+        } else {
+          // Non-roleplay phases: clean markdown as before
+          const cleanedResponse = cleanMarkdown(rawResponse)
+          
+          // Track message count for brief phase
+          if (phase.value === 'brief') {
+            messageCount.value++
+          }
+          
+          return { content: cleanedResponse, source: 'ai' }
         }
-        
-        // Track message count for brief phase
-        if (phase.value === 'brief') {
-          messageCount.value++
-        }
-        
-        return { content: cleanedResponse, source: 'ai' }
       } catch (error) {
         console.error('Erreur API:', error)
-        // Show error message when API fails
-        return { content: generateErrorMessage(userMessage), source: 'mock' }
+        return { content: error.message.startsWith('❌ ERREUR DÉFINITIVE') ? error.message : generateErrorMessage(userMessage), source: 'mock' }
       }
     } else {
       return { content: generateErrorMessage(userMessage), source: 'mock' }
@@ -292,13 +406,15 @@ export function useChatbot() {
         Math.random() * (config.typingDelay.max - config.typingDelay.min)
       await new Promise(resolve => setTimeout(resolve, delay))
 
-      // Generate response based on current phase (now async)
-      const response = await generateResponse(content)
-
-      // Add AI response with source information
-      const assistantMessage = addMessage(response.content, 'assistant', response.source)
+      // Add AI response
+      const aiResponse = await generateResponse(content)
+      addMessage(aiResponse.content, 'assistant', aiResponse.source, {
+        isThomas: aiResponse.isThomas,
+        coachFeedback: aiResponse.coachFeedback,
+        isOffTopic: aiResponse.isOffTopic
+      })
       
-      return { userMessage, assistantMessage }
+      return { userMessage, aiResponse }
     } catch (error) {
       console.error('Error sending message:', error)
       
