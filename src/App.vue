@@ -43,8 +43,19 @@
           <p>{{ getHeaderSubtitle() }}</p>
         </div>
 
-        <!-- Right: Timer (only in roleplay phase) -->
+        <!-- Right: Debug info and Timer -->
         <div class="header-right">
+          <!-- Debug Info -->
+          <div class="debug-info">
+            <div class="prompt-files">
+              <small>Prompts: brief.js | roleplay.js | debrief.js</small>
+            </div>
+            <button @click="copyConversationToClipboard" class="debug-button" title="Copier la conversation en markdown">
+              📋 Debug
+            </button>
+          </div>
+          
+          <!-- Timer (only in roleplay phase) -->
           <div v-if="phase === 'roleplay'" class="timer">
             ⏱️ {{ formatTime(timeLeft) }}
           </div>
@@ -232,6 +243,48 @@ const getAssistantAvatar = (source) => {
       return 'A'
     default:
       return 'A'
+  }
+}
+
+// Copy conversation to clipboard for debugging
+const copyConversationToClipboard = async () => {
+  let markdown = `# Conversation Debug Export\n\n`
+  markdown += `**Phase actuelle:** ${phase.value}\n`
+  markdown += `**Prompt utilisé:** ${getPromptFileName()}\n`
+  markdown += `**Timestamp:** ${new Date().toLocaleString()}\n\n`
+  
+  markdown += `## Messages\n\n`
+  
+  messages.value.forEach((msg, index) => {
+    const role = msg.role === 'user' ? 'USER' : 'ASSISTANT'
+    const source = msg.source ? ` (${msg.source})` : ''
+    markdown += `### ${index + 1}. ${role}${source}\n`
+    markdown += `${msg.content}\n\n`
+  })
+  
+  try {
+    await navigator.clipboard.writeText(markdown)
+    alert('Conversation copiée dans le presse-papiers !')
+  } catch (err) {
+    console.error('Erreur copie:', err)
+    // Fallback: créer un textarea temporaire
+    const textarea = document.createElement('textarea')
+    textarea.value = markdown
+    document.body.appendChild(textarea)
+    textarea.select()
+    document.execCommand('copy')
+    document.body.removeChild(textarea)
+    alert('Conversation copiée (fallback) !')
+  }
+}
+
+// Get current prompt filename for debug
+const getPromptFileName = () => {
+  switch (phase.value) {
+    case 'brief': return 'brief.js'
+    case 'roleplay': return 'roleplay.js'
+    case 'debrief': return 'debrief.js'
+    default: return 'default.js'
   }
 }
 

@@ -331,15 +331,16 @@ export function useChatbot() {
   const getTemperature = (phase) => {
     switch (phase) {
       case 'brief':
-        return 0.1      // Très prévisible et discipliné
+        return 0.2      // Zéro créativité = obéissance maximale
       case 'roleplay':
         return 0.8      // Thomas spontané et naturel
       case 'debrief':
-        return 0.4      // Analyses réfléchies mais variées
+        return 0.6     // Analyses réfléchies mais variées
       default:
         return 0.7
     }
   }
+
 
   // OpenRouter API integration
   const callChatAPI = async (userMessage, currentPhase) => {

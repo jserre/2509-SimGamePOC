@@ -49,7 +49,7 @@ body {
 
 .header-left,
 .header-right {
-  flex: 0 0 150px;
+  flex: 0 0 200px;
 }
 
 .header-center {
@@ -111,12 +111,45 @@ body {
 
 /* Timer */
 .timer {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 1rem;
-  padding: 0.5rem 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e74c3c;
+  text-align: right;
+}
+
+/* Debug Info Styles */
+.debug-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.prompt-files {
   font-size: 1rem;
-  font-weight: bold;
-  text-align: center;
+  color: #ffffff;
+  opacity: 1;
+  font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  background: rgba(0,0,0,0.2);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+.debug-button {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.debug-button:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
 }
 
 /* Responsive adjustments */
@@ -129,6 +162,14 @@ body {
   .header-left,
   .header-right {
     flex: none;
+  }
+  
+  .debug-info {
+    align-items: center;
+  }
+  
+  .prompt-files {
+    text-align: center;
   }
   
   .scores-compact {
