@@ -55,9 +55,9 @@
             </button>
           </div>
           
-          <!-- Timer (only in roleplay phase) -->
+          <!-- Chronometer (only in roleplay phase) -->
           <div v-if="phase === 'roleplay'" class="timer">
-            ⏱️ {{ formatTime(timeLeft) }}
+            ⏱️ {{ formatTime(timeElapsed) }}
           </div>
         </div>
       </div>
@@ -110,7 +110,16 @@
           type="button"
           class="action-button secondary"
         >
-          ⏹️ Terminer l'exercice
+          ⏹️ Arrêter l'exercice
+        </button>
+        
+        <button
+          v-if="phase === 'debrief'"
+          @click="resetExercise"
+          type="button"
+          class="action-button primary"
+        >
+          🔄 Recommencer l'exercice
         </button>
 
         <textarea
@@ -144,11 +153,12 @@ const {
   messages,
   isTyping,
   phase,
-  timeLeft,
+  timeElapsed,
   scores,
   canStartExercise,
   startExercise,
   endExercise,
+  resetExercise,
   sendMessage: sendChatMessage
 } = useChatbot()
 

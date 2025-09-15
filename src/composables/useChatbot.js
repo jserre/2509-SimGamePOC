@@ -11,9 +11,10 @@ export function useChatbot() {
   // Exercise phases: 'brief' | 'roleplay' | 'debrief'
   const phase = ref('brief')
   
-  // Timer for roleplay phase (5 minutes = 300 seconds)
-  const timeLeft = ref(300)
+  // Chronometer for roleplay phase (counts up from 0)
+  const timeElapsed = ref(0)
   const timerInterval = ref(null)
+  const showTimeWarning = ref(false)
   
   // DESC scores (échelle 1-5)
   const scores = reactive({
@@ -70,36 +71,23 @@ export function useChatbot() {
     return message
   }
 
-  // Timer management
-  const startTimer = () => {
-    if (timerInterval.value) clearInterval(timerInterval.value)
+  // Start exercise chronometer
+  const startExercise = () => {
+    exerciseStarted.value = true
+    phase.value = 'roleplay'
+    timeElapsed.value = 0
+    showTimeWarning.value = false
     
+    // Start chronometer (counts up)
     timerInterval.value = setInterval(() => {
-      timeLeft.value--
-      if (timeLeft.value <= 0) {
-        stopTimer()
-        endExercise()
+      timeElapsed.value++
+      
+      // Show warning at 10 minutes (600 seconds)
+      if (timeElapsed.value === 600 && !showTimeWarning.value) {
+        showTimeWarning.value = true
+        alert('⏰ Normalement l\'exercice devrait être terminé.\n\nCliquez sur "Arrêter l\'exercice" quand vous voulez pour passer à l\'étape de debrief !')
       }
     }, 1000)
-  }
-
-  const stopTimer = () => {
-    if (timerInterval.value) {
-      clearInterval(timerInterval.value)
-      timerInterval.value = null
-    }
-  }
-
-  const resetTimer = () => {
-    timeLeft.value = 300
-    stopTimer()
-  }
-
-  // Phase management
-  const startExercise = () => {
-    phase.value = 'roleplay'
-    exerciseStarted.value = true
-    startTimer()
     
     addMessage(
       "🎭 L'exercice commence maintenant !\n\nVous êtes dans votre bureau.\nThomas vient d'arriver 15 minutes en retard à la réunion d'équipe.\nVous décidez d'aller lui parler.\n\n---\n\nThomas : Ah salut ! Désolé pour le retard, j'ai eu un imprévu ce matin...\nBon, on a raté quelque chose d'important ?",
@@ -108,15 +96,20 @@ export function useChatbot() {
     )
   }
 
+  // End exercise and move to debrief
   const endExercise = () => {
-    phase.value = 'debrief'
-    stopTimer()
+    if (timerInterval.value) {
+      clearInterval(timerInterval.value)
+      timerInterval.value = null
+    }
     
-    addMessage(
-      "⏰ Exercice terminé !\n\nFélicitations ! Prenons maintenant quelques minutes pour analyser votre performance.\n\nQuestions de réflexion :\n1. Comment vous êtes-vous senti pendant cet exercice ?\n2. Quels ont été les moments les plus difficiles ?\n3. Que feriez-vous différemment ?",
-      'assistant',
-      'mock'
-    )
+    phase.value = 'debrief'
+    exerciseStarted.value = false
+    showTimeWarning.value = false
+    
+    // Add debrief message
+    const debriefMessage = `🎯 Exercice terminé !\n\nTemps écoulé : ${formatTime(timeElapsed.value)}\n\n${generateFeedback()}`
+    addMessage(debriefMessage, 'assistant', 'system')
   }
 
   // Score analysis based on message content
@@ -221,7 +214,7 @@ export function useChatbot() {
     return "À travailler davantage"
   }
 
-  const getPersonalizedRecommendations = () => {
+  const generateFeedback = () => {
     const recommendations = []
     
     if (scores.decrire < 3) {
@@ -242,6 +235,45 @@ export function useChatbot() {
     }
     
     return "🎯 Recommandations :\n" + recommendations.join("\n")
+  }
+
+  // Format time helper function
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  // Reset exercise (restart from beginning)
+  const resetExercise = () => {
+    if (timerInterval.value) {
+      clearInterval(timerInterval.value)
+      timerInterval.value = null
+    }
+    
+    phase.value = 'brief'
+    exerciseStarted.value = false
+    canStartExercise.value = true
+    timeElapsed.value = 0
+    showTimeWarning.value = false
+    messageCount.value = 0
+    
+    // Reset scores
+    scores.decrire = 1
+    scores.exprimer = 1
+    scores.specifier = 1
+    scores.conclure = 1
+    
+    // Clear messages and add initial message
+    messages.value = [
+      {
+        id: 1,
+        role: 'assistant',
+        content: 'Bonjour ! Bienvenue dans votre entraînement à la communication avec la méthode DESC.\n\n📋 Votre exercice d\'aujourd\'hui :\nVous devez avoir une conversation difficile avec Thomas, un collaborateur qui arrive systématiquement en retard aux réunions d\'équipe.\n\n🎯 La méthode DESC :\n• Décrire : Les faits objectifs\n• Exprimer : Vos sentiments  \n• Spécifier : Ce que vous voulez\n• Conclure : Les conséquences\n\nAvez-vous des questions sur l\'exercice avant de commencer ?',
+        timestamp: new Date(),
+        source: 'mock'
+      }
+    ]
   }
 
   // Send message and get AI response
@@ -421,7 +453,7 @@ export function useChatbot() {
     
     // Exercise state
     phase,
-    timeLeft,
+    timeElapsed,
     scores,
     exerciseStarted,
     canStartExercise,
@@ -436,8 +468,6 @@ export function useChatbot() {
     // Exercise methods
     startExercise,
     endExercise,
-    startTimer,
-    stopTimer,
-    resetTimer
+    resetExercise
   }
 }
