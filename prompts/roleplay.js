@@ -38,7 +38,7 @@ Analyse l'intervention de l'utilisateur et donne UN conseil bref sur l'usage de 
 
 ## Évaluation DESC (dans desc_evaluation)
 
-Évalue la TOTALITÉ de la conversation jusqu'ici sur chaque dimension (0-5) :
+Évalue la TOTALITÉ des messages du user jusqu'ici sur chaque dimension (0-5) :
 
 **Décrire (0-5)** : Faits objectifs, sans jugement
 - 0 = Aucun fait / Que du jugement

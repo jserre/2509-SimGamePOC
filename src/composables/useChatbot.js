@@ -112,6 +112,11 @@ export function useChatbot() {
     // Add debrief message
     const debriefMessage = `🎯 Exercice terminé !\n\nTemps écoulé : ${formatTime(timeElapsed.value)}\n\n${generateFeedback()}`
     addMessage(debriefMessage, 'assistant', 'system')
+    
+    // Add follow-up message after a few seconds
+    setTimeout(() => {
+      addMessage('Avez-vous des questions ou des réflexions à partager sur cet exercice ?', 'assistant', 'ai')
+    }, 3000)
   }
 
   // Score analysis based on message content
@@ -378,7 +383,7 @@ Répondez maintenant UNIQUEMENT avec le JSON, SANS balises markdown:`
     scores.specifier = 1
     scores.conclure = 1
     
-    // Clear messages and add initial message
+    // Clear ALL messages and start fresh
     messages.value = [
       {
         id: 1,
@@ -481,13 +486,13 @@ Répondez maintenant UNIQUEMENT avec le JSON, SANS balises markdown:`
   const getMaxTokens = (phase) => {
     switch (phase) {
       case 'brief':
-        return 300      // Marge pour éviter troncature + prompt contrôle la brièveté
+        return 375      // 300 + 25% = 375
       case 'roleplay':
-        return 500      // Thomas peut s'exprimer librement
+        return 625      // 500 + 25% = 625
       case 'debrief':
-        return 400      // Analyses complètes sans coupure
+        return 500      // 400 + 25% = 500
       default:
-        return 300
+        return 375
     }
   }
 
@@ -524,7 +529,7 @@ Répondez maintenant UNIQUEMENT avec le JSON, SANS balises markdown:`
     
     // Build conversation history for context
     const conversationHistory = messages.value
-      .slice(-6) // Last 6 messages for context
+      .slice(-15) // Last 15 messages for context
       .map(msg => ({
         role: msg.role === 'assistant' ? 'assistant' : 'user',
         content: msg.content
