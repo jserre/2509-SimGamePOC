@@ -9,3 +9,5 @@ Mise à jour du test 3
 Mise à jour du test 4
 
 Mise à jour du test 5
+
+Mise à jour du test 6 (privé)
