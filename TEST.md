@@ -11,3 +11,5 @@ Mise à jour du test 4
 Mise à jour du test 5
 
 Mise à jour du test 6 (privé)
+
+Mise à jour du test 7 (publique)
