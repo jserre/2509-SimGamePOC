@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "npx vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "vercel-build": "npm ci && npm run build"
   },
   "dependencies": {
     "vue": "^3.4.29"
