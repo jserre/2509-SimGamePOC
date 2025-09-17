@@ -1,4 +1,235 @@
 /* CSS Reset & Base Styles */
+
+/* Voice Controls Styles */
+.voice-toggle-container {
+  margin-right: 1rem;
+}
+
+.voice-toggle {
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 1.2rem;
+  transition: all 0.3s ease;
+  min-width: 50px;
+}
+
+.voice-toggle:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: scale(1.05);
+}
+
+.voice-toggle.active {
+  background: #4CAF50;
+  border-color: #45a049;
+  box-shadow: 0 0 15px rgba(76, 175, 80, 0.5);
+}
+
+.voice-controls {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-top: 1px solid #dee2e6;
+  padding: 1.5rem 2rem;
+  margin: 0;
+}
+
+.voice-status {
+  margin-bottom: 1rem;
+}
+
+.voice-indicators {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.voice-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #f8f9fa;
+  border: 2px solid #e9ecef;
+  border-radius: 25px;
+  transition: all 0.3s ease;
+  opacity: 0.6;
+}
+
+.voice-indicator.active {
+  background: #e3f2fd;
+  border-color: #2196F3;
+  opacity: 1;
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.2);
+}
+
+.indicator-icon {
+  font-size: 1.2rem;
+}
+
+.indicator-text {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #495057;
+}
+
+.voice-indicator.active .indicator-text {
+  color: #1976D2;
+}
+
+.live-transcription {
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-top: 1rem;
+}
+
+.transcription-label {
+  font-weight: 600;
+  color: #856404;
+  margin-right: 0.5rem;
+}
+
+.transcription-text {
+  color: #533f03;
+  font-style: italic;
+}
+
+.voice-buttons {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.voice-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: 2px solid #dee2e6;
+  border-radius: 25px;
+  background: white;
+  color: #495057;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.voice-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.voice-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.mic-btn {
+  border-color: #28a745;
+  color: #28a745;
+}
+
+.mic-btn:hover:not(:disabled) {
+  background: #28a745;
+  color: white;
+}
+
+.mic-btn.active {
+  background: #dc3545;
+  border-color: #dc3545;
+  color: white;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+}
+
+.interrupt-btn {
+  border-color: #ffc107;
+  color: #ffc107;
+}
+
+.interrupt-btn:hover:not(:disabled) {
+  background: #ffc107;
+  color: #212529;
+}
+
+.text-btn {
+  border-color: #6c757d;
+  color: #6c757d;
+}
+
+.text-btn:hover {
+  background: #6c757d;
+  color: white;
+}
+
+.voice-input-placeholder {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background: #f8f9fa;
+  border: 2px dashed #dee2e6;
+  border-radius: 25px;
+  margin: 0 1rem;
+}
+
+.voice-placeholder-text {
+  color: #6c757d;
+  font-style: italic;
+  text-align: center;
+  width: 100%;
+}
+
+.input-container.voice-mode {
+  background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+}
+
+.input-container.voice-mode .input-form {
+  padding: 1rem 2rem;
+}
+
+/* Responsive voice controls */
+@media (max-width: 768px) {
+  .voice-controls {
+    padding: 1rem;
+  }
+  
+  .voice-indicators {
+    justify-content: center;
+  }
+  
+  .voice-buttons {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .voice-btn {
+    justify-content: center;
+  }
+  
+  .voice-toggle-container {
+    margin-right: 0.5rem;
+  }
+  
+  .voice-toggle {
+    padding: 0.4rem 0.8rem;
+    font-size: 1rem;
+    min-width: 45px;
+  }
+}
 *, *::before, *::after {
   box-sizing: border-box;
 }
@@ -36,6 +267,21 @@ body {
   .chatbot-container {
     max-width: 100%;
     box-shadow: none;
+  }
+  
+  .header-layout {
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: center;
+  }
+  
+  .header-left,
+  .header-right {
+    justify-content: center;
+  }
+  
+  .scores-compact {
+    justify-content: center;
   }
 }
 

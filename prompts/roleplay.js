@@ -16,6 +16,7 @@ Tu dois OBLIGATOIREMENT répondre au format JSON exact suivant, RIEN D'AUTRE :
     "conclure": 0
   },
   "off_topic_warning": null
+  "language": "fr"
 }
 \`\`\`
 
@@ -69,6 +70,12 @@ Si l'utilisateur :
 
 Alors \`off_topic_warning\` = "Message de recadrage poli mais ferme"
 Sinon \`off_topic_warning\` = null
+
+## Détection de la langue (dans language)
+
+Si l'utilisateur parle en français, \`language\` = "fr"
+Si l'utilisateur parle en anglais, \`language\` = "en"
+
 
 ## Exemples de contexte Thomas
 

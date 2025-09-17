@@ -43,8 +43,17 @@
           <p>{{ getHeaderSubtitle() }}</p>
         </div>
 
-        <!-- Right: Debug info and Timer -->
+        <!-- Right: Debug info, Voice Toggle and Timer -->
         <div class="header-right">
+          <!-- Voice Mode Toggle (only in roleplay) -->
+          <button 
+            v-if="phase === 'roleplay'"
+            @click="toggleVoiceMode"
+            :class="['voice-toggle', { active: voiceMode }]"
+            title="Mode vocal"
+          >
+            {{ voiceMode ? '🎙️' : '🔇' }}
+          </button>
           <!-- Debug Info -->
           <div class="debug-info">
             <div class="prompt-files">
@@ -77,14 +86,7 @@
           {{ message.content }}
         </div>
         <!-- Coach button for Thomas messages -->
-        <button 
-          v-if="message.isThomas && message.coachFeedback"
-          @click="showCoachFeedback(message.coachFeedback)"
-          class="coach-button"
-          title="Voir le conseil du coach"
-        >
-          🎯
-        </button>
+        <!-- Removed lastResponse reference - will be implemented later -->
       </div>
 
       <!-- Typing Indicator -->
@@ -100,8 +102,69 @@
       </div>
     </div>
 
+    <!-- Voice Controls (only in voice mode) -->
+    <div v-if="voiceMode" class="voice-controls">
+      <div class="voice-status">
+        <div class="voice-indicators">
+          <div :class="['voice-indicator', { active: voiceChat.isListening }]">
+            <span class="indicator-icon">🎤</span>
+            <span class="indicator-text">{{ voiceChat.isListening ? 'Écoute...' : 'En attente' }}</span>
+          </div>
+          
+          <div :class="['voice-indicator', { active: voiceChat.isSpeaking }]">
+            <span class="indicator-icon">🔊</span>
+            <span class="indicator-text">{{ voiceChat.isSpeaking ? 'Thomas parle...' : 'Silencieux' }}</span>
+          </div>
+          
+          <div v-if="voiceChat.isProcessingAudio" class="voice-indicator active">
+            <span class="indicator-icon">⚡</span>
+            <span class="indicator-text">Traitement...</span>
+          </div>
+        </div>
+        
+        <!-- Live transcription -->
+        <div v-if="voiceChat.currentTranscription" class="live-transcription">
+          <span class="transcription-label">Transcription :</span>
+          <span class="transcription-text">{{ voiceChat.currentTranscription }}</span>
+        </div>
+      </div>
+      
+      <!-- Voice control buttons -->
+      <div class="voice-buttons">
+        <button 
+          @click="voiceChat.toggleListening"
+          :class="['voice-btn', 'mic-btn', { 
+            active: voiceChat.isListening, 
+            disabled: voiceChat.isSpeaking 
+          }]"
+          :disabled="voiceChat.isSpeaking"
+          title="Démarrer/Arrêter l'écoute"
+        >
+          {{ voiceChat.isListening ? '🔴' : '🎤' }}
+          {{ voiceChat.isListening ? 'Arrêter' : 'Parler' }}
+        </button>
+        
+        <button 
+          @click="voiceChat.handleUserInterruption"
+          :class="['voice-btn', 'interrupt-btn']"
+          :disabled="!voiceChat.isSpeaking"
+          title="Interrompre Thomas"
+        >
+          ✋ Interrompre
+        </button>
+        
+        <button 
+          @click="toggleVoiceMode"
+          class="voice-btn text-btn"
+          title="Retour au mode texte"
+        >
+          💬 Mode Texte
+        </button>
+      </div>
+    </div>
+
     <!-- Input Area -->
-    <div class="input-container">
+    <div class="input-container" :class="{ 'voice-mode': voiceMode }">
       <form @submit.prevent="sendMessage" class="input-form">
         <!-- Action Button (left side) -->
         <button
@@ -132,6 +195,7 @@
         </button>
 
         <textarea
+          v-if="!voiceMode"
           v-model="currentMessage"
           @keydown.enter.exact.prevent="sendMessage"
           @keydown.enter.shift.exact="addNewLine"
@@ -141,7 +205,15 @@
           ref="messageInput"
           rows="1"
         ></textarea>
+        
+        <!-- Voice mode placeholder -->
+        <div v-if="voiceMode" class="voice-input-placeholder">
+          <span class="voice-placeholder-text">
+            {{ getVoicePlaceholder() }}
+          </span>
+        </div>
         <button
+          v-if="!voiceMode"
           type="submit"
           class="send-button"
           :disabled="!currentMessage.trim() || isTyping"
@@ -151,11 +223,32 @@
       </form>
     </div>
   </div>
+  <!-- Modales -->
+  <Modal 
+    v-model="modals.alert.visible"
+    :title="modals.alert.title"
+    :message="modals.alert.message"
+    :icon="modals.alert.icon"
+    @confirm="modals.alert.onConfirm"
+  />
+  
+  <Modal 
+    v-model="modals.confirm.visible"
+    :title="modals.confirm.title"
+    :message="modals.confirm.message"
+    :icon="modals.confirm.icon"
+    :show-cancel="true"
+    @confirm="modals.confirm.onConfirm"
+    @cancel="modals.confirm.onCancel"
+  />
 </template>
 
 <script setup>
-import { ref, nextTick, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useChatbot } from './composables/useChatbot.js'
+import { useVoiceChat } from './composables/useVoiceChat.js'
+import { useModal } from './composables/useModal.js'
+import Modal from './components/Modal.vue'
 
 // Use the chatbot composable
 const {
@@ -168,8 +261,17 @@ const {
   startExercise,
   endExercise,
   resetExercise,
-  sendMessage: sendChatMessage
+  sendMessage: sendChatMessage,
+  voiceMode,
+  voiceChat,
+  toggleVoiceMode
 } = useChatbot()
+
+const {
+  modals,
+  showCopySuccess,
+  showCoachFeedback
+} = useModal()
 
 const currentMessage = ref('')
 const messagesContainer = ref(null)
@@ -248,6 +350,29 @@ const getInputPlaceholder = () => {
   }
 }
 
+const getVoicePlaceholder = () => {
+  if (voiceChat.isSpeaking.value) {
+    return '🔊 Thomas parle... Cliquez sur "Interrompre" si nécessaire'
+  }
+  if (voiceChat.isListening.value) {
+    return '🎤 Parlez maintenant... (mode vocal actif)'
+  }
+  if (voiceChat.isProcessingAudio.value) {
+    return '⚡ Traitement en cours...'
+  }
+  
+  switch (phase.value) {
+    case 'brief':
+      return '🎙️ Cliquez sur "Parler" pour poser vos questions'
+    case 'roleplay':
+      return '🎭 Cliquez sur "Parler" pour répondre à Thomas'
+    case 'debrief':
+      return '📊 Cliquez sur "Parler" pour partager vos réflexions'
+    default:
+      return '🎙️ Mode vocal - Cliquez sur "Parler" pour commencer'
+  }
+}
+
 const formatTime = (seconds) => {
   const mins = Math.floor(seconds / 60)
   const secs = seconds % 60
@@ -266,24 +391,18 @@ const getAssistantAvatar = (source) => {
 }
 
 // Copy conversation to clipboard for debugging
-const copyConversationToClipboard = async () => {
-  let markdown = `# Conversation Debug Export\n\n`
-  markdown += `**Phase actuelle:** ${phase.value}\n`
-  markdown += `**Prompt utilisé:** ${getPromptFileName()}\n`
-  markdown += `**Timestamp:** ${new Date().toLocaleString()}\n\n`
-  
-  markdown += `## Messages\n\n`
-  
-  messages.value.forEach((msg, index) => {
-    const role = msg.role === 'user' ? 'USER' : 'ASSISTANT'
-    const source = msg.source ? ` (${msg.source})` : ''
-    markdown += `### ${index + 1}. ${role}${source}\n`
-    markdown += `${msg.content}\n\n`
-  })
+const copyConversation = async () => {
+  const markdown = messages.value
+    .filter(msg => msg.role !== 'system')
+    .map(msg => {
+      const role = msg.role === 'user' ? '**Vous**' : '**Thomas**'
+      return `${role}: ${msg.content}`
+    })
+    .join('\n\n')
   
   try {
     await navigator.clipboard.writeText(markdown)
-    alert('Conversation copiée dans le presse-papiers !')
+    showCopySuccess()
   } catch (err) {
     console.error('Erreur copie:', err)
     // Fallback: créer un textarea temporaire
@@ -293,7 +412,7 @@ const copyConversationToClipboard = async () => {
     textarea.select()
     document.execCommand('copy')
     document.body.removeChild(textarea)
-    alert('Conversation copiée (fallback) !')
+    showCopySuccess(true)
   }
 }
 
@@ -307,13 +426,18 @@ const getPromptFileName = () => {
   }
 }
 
-// Show coach feedback in popup
-const showCoachFeedback = (feedback) => {
-  alert(`🎯 Conseil du Coach\n\n${feedback}`)
+// Show coach feedback in modal
+const showCoachFeedbackModal = (feedback) => {
+  showCoachFeedback(feedback)
 }
 
 // Send message function
 const sendMessage = async () => {
+  if (voiceMode.value) {
+    // In voice mode, this shouldn't be called from form submit
+    return
+  }
+  
   const message = currentMessage.value.trim()
   if (!message || isTyping.value) return
 

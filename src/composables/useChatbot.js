@@ -1,7 +1,9 @@
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import briefPrompt from '../../prompts/brief.js'
 import roleplayPrompt from '../../prompts/roleplay.js'
 import debriefPrompt from '../../prompts/debrief.js'
+import { useVoiceChat } from './useVoiceChat.js'
+import { useModal } from './useModal.js'
 
 /**
  * Composable for managing chatbot functionality with DESC exercise phases
@@ -10,6 +12,10 @@ import debriefPrompt from '../../prompts/debrief.js'
 export function useChatbot() {
   // Exercise phases: 'brief' | 'roleplay' | 'debrief'
   const phase = ref('brief')
+  
+  // Voice chat integration
+  const voiceChat = useVoiceChat()
+  const voiceMode = ref(false)
   
   // Chronometer for roleplay phase (counts up from 0)
   const timeElapsed = ref(0)
@@ -49,7 +55,8 @@ export function useChatbot() {
     apiKey: import.meta.env.VITE_OPENROUTER_API_KEY,
     model: import.meta.env.VITE_OPENROUTER_MODEL || 'anthropic/claude-sonnet-4',
     maxMessages: 100,
-    typingDelay: { min: 800, max: 2000 }
+    typingDelay: { min: 800, max: 2000 },
+    streaming: true // Enable streaming for voice mode
   })
 
   // Add message to conversation
@@ -87,7 +94,8 @@ export function useChatbot() {
       // Show warning at 10 minutes (600 seconds)
       if (timeElapsed.value === 600 && !showTimeWarning.value) {
         showTimeWarning.value = true
-        alert('⏰ Normalement l\'exercice devrait être terminé.\n\nCliquez sur "Arrêter l\'exercice" quand vous voulez pour passer à l\'étape de debrief !')
+        const { showTimeWarning: showTimeWarningModal } = useModal()
+        showTimeWarningModal()
       }
     }, 1000)
     
@@ -103,6 +111,14 @@ export function useChatbot() {
     if (timerInterval.value) {
       clearInterval(timerInterval.value)
       timerInterval.value = null
+    }
+    
+    // Disable voice mode when leaving roleplay
+    if (voiceMode.value) {
+      voiceMode.value = false
+      voiceChat.stopListening()
+      voiceChat.stopSpeaking()
+      console.log('🔇 Mode vocal désactivé (fin du roleplay)')
     }
     
     phase.value = 'debrief'
@@ -260,14 +276,16 @@ Répondez maintenant UNIQUEMENT avec le JSON, SANS balises markdown:`
     }
   }
 
-  // Generate AI response using OpenRouter API
+  // Generate AI response using OpenRouter API with voice support
   const generateResponse = async (userMessage) => {
     if (config.apiKey) {
       try {
-        const rawResponse = await callChatAPI(userMessage, phase.value)
+        // Use streaming for voice mode, regular for text mode
+        const enableStreaming = voiceMode.value && phase.value === 'roleplay'
+        const rawResponse = await callChatAPI(userMessage, phase.value, enableStreaming)
         
-        // Handle roleplay phase with JSON parsing
-        if (phase.value === 'roleplay') {
+        // Handle roleplay phase with JSON parsing (only for non-streaming)
+        if (phase.value === 'roleplay' && !enableStreaming) {
           const jsonResponse = await parseRoleplayResponse(rawResponse, userMessage)
           
           // Handle off-topic warning
@@ -291,6 +309,17 @@ Répondez maintenant UNIQUEMENT avec le JSON, SANS balises markdown:`
             source: 'ai',
             coachFeedback: jsonResponse.coach_feedback,
             isThomas: true
+          }
+        } else if (phase.value === 'roleplay' && enableStreaming) {
+          // For streaming voice mode, return simplified response
+          // Score evaluation will be done asynchronously
+          setTimeout(() => analyzeMessage(userMessage), 100)
+          
+          return { 
+            content: rawResponse, 
+            source: 'ai',
+            isThomas: true,
+            isVoiceStreamed: true
           }
         } else {
           // Non-roleplay phases: clean markdown as before
@@ -368,6 +397,14 @@ Répondez maintenant UNIQUEMENT avec le JSON, SANS balises markdown:`
     if (timerInterval.value) {
       clearInterval(timerInterval.value)
       timerInterval.value = null
+    }
+    
+    // Disable voice mode when resetting
+    if (voiceMode.value) {
+      voiceMode.value = false
+      voiceChat.stopListening()
+      voiceChat.stopSpeaking()
+      console.log('🔇 Mode vocal désactivé (reset exercice)')
     }
     
     phase.value = 'brief'
@@ -482,37 +519,31 @@ Répondez maintenant UNIQUEMENT avec le JSON, SANS balises markdown:`
     }
   }
 
-  // Max tokens configuration per phase
+  // Max tokens configuration per phase (optimized for voice)
   const getMaxTokens = (phase) => {
-    switch (phase) {
-      case 'brief':
-        return 375      // 300 + 25% = 375
-      case 'roleplay':
-        return 625      // 500 + 25% = 625
-      case 'debrief':
-        return 500      // 400 + 25% = 500
-      default:
-        return 375
+    const baseTokens = {
+      brief: voiceMode.value ? 200 : 375,
+      roleplay: voiceMode.value ? 150 : 625,
+      debrief: voiceMode.value ? 250 : 500
     }
+    
+    return baseTokens[phase] || 200
   }
 
-  // Temperature configuration per phase  
+  // Temperature configuration per phase (optimized for voice)
   const getTemperature = (phase) => {
-    switch (phase) {
-      case 'brief':
-        return 0.2      // Zéro créativité = obéissance maximale
-      case 'roleplay':
-        return 0.8      // Thomas spontané et naturel
-      case 'debrief':
-        return 0.6     // Analyses réfléchies mais variées
-      default:
-        return 0.7
+    const baseTemp = {
+      brief: 0.2,
+      roleplay: voiceMode.value ? 0.7 : 0.8, // Slightly lower for voice consistency
+      debrief: 0.6
     }
+    
+    return baseTemp[phase] || 0.7
   }
 
 
-  // OpenRouter API integration
-  const callChatAPI = async (userMessage, currentPhase) => {
+  // OpenRouter API integration with streaming support
+  const callChatAPI = async (userMessage, currentPhase, enableStreaming = false) => {
     if (!config.apiKey) {
       throw new Error('Clé API OpenRouter manquante')
     }
@@ -521,19 +552,31 @@ Répondez maintenant UNIQUEMENT avec le JSON, SANS balises markdown:`
     
     // DEBUG: Log du prompt utilisé
     console.log('🔍 DEBUG - Phase:', currentPhase)
-    console.log('🔍 DEBUG - briefPrompt exists:', !!briefPrompt)
-    console.log('🔍 DEBUG - briefPrompt content:', briefPrompt ? briefPrompt.substring(0, 100) : 'UNDEFINED')
-    console.log('🔍 DEBUG - Prompt utilisé:', systemPrompt.substring(0, 200) + '...')
+    console.log('🔍 DEBUG - Streaming:', enableStreaming)
+    console.log('🔍 DEBUG - Voice mode:', voiceMode.value)
     console.log('🔍 DEBUG - Max tokens:', getMaxTokens(currentPhase))
     console.log('🔍 DEBUG - Temperature:', getTemperature(currentPhase))
     
-    // Build conversation history for context
+    // Build conversation history for context (reduced for voice mode)
+    const historyLimit = voiceMode.value ? 8 : 15
     const conversationHistory = messages.value
-      .slice(-15) // Last 15 messages for context
+      .slice(-historyLimit)
       .map(msg => ({
         role: msg.role === 'assistant' ? 'assistant' : 'user',
         content: msg.content
       }))
+
+    const requestBody = {
+      model: config.model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        ...conversationHistory,
+        { role: 'user', content: userMessage }
+      ],
+      max_tokens: getMaxTokens(currentPhase),
+      temperature: getTemperature(currentPhase),
+      stream: enableStreaming
+    }
 
     const response = await fetch(`${config.apiEndpoint}/chat/completions`, {
       method: 'POST',
@@ -543,17 +586,7 @@ Répondez maintenant UNIQUEMENT avec le JSON, SANS balises markdown:`
         'HTTP-Referer': window.location.origin,
         'X-Title': 'Chatbot Trainer DESC'
       },
-      body: JSON.stringify({
-        model: config.model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...conversationHistory,
-          { role: 'user', content: userMessage }
-        ],
-        max_tokens: getMaxTokens(currentPhase),
-        temperature: getTemperature(currentPhase),
-        stream: false
-      })
+      body: JSON.stringify(requestBody)
     })
 
     if (!response.ok) {
@@ -561,8 +594,139 @@ Répondez maintenant UNIQUEMENT avec le JSON, SANS balises markdown:`
       throw new Error(`Erreur API: ${response.status} - ${error}`)
     }
 
-    const data = await response.json()
-    return data.choices[0]?.message?.content || 'Désolé, je n\'ai pas pu générer de réponse.'
+    if (enableStreaming) {
+      return handleStreamingResponse(response, currentPhase)
+    } else {
+      const data = await response.json()
+      return data.choices[0]?.message?.content || 'Désolé, je n\'ai pas pu générer de réponse.'
+    }
+  }
+
+  // Handle streaming response for voice mode
+  const handleStreamingResponse = async (response, currentPhase) => {
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let fullResponse = ''
+    let sentenceBuffer = ''
+    let pendingTTS = null // Track current TTS to avoid conflicts
+    
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        
+        const chunk = decoder.decode(value, { stream: true })
+        const lines = chunk.split('\n')
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+            try {
+              const jsonStr = line.slice(6).trim()
+              if (jsonStr === '[DONE]' || jsonStr === '') break
+              
+              // Skip malformed JSON chunks
+              if (!jsonStr.startsWith('{') || !jsonStr.endsWith('}')) {
+                continue
+              }
+              
+              const data = JSON.parse(jsonStr)
+              const token = data.choices?.[0]?.delta?.content
+              
+              if (token) {
+                fullResponse += token
+                sentenceBuffer += token
+                
+                // En mode vocal, ne pas faire de TTS pendant le streaming
+                // On attendra la réponse complète pour extraire thomas_response
+              }
+            } catch (e) {
+              // Ignorer silencieusement les erreurs de parsing JSON pendant le streaming
+              continue
+            }
+          }
+        }
+      }
+      
+      // En mode vocal, traiter la réponse complète pour extraire thomas_response
+      if (voiceMode.value && fullResponse.trim()) {
+        try {
+          // Essayer de parser le JSON pour extraire thomas_response
+          const jsonMatch = fullResponse.match(/```json\s*({[\s\S]*?})\s*```/) || 
+                           fullResponse.match(/({[\s\S]*})/)
+          
+          if (jsonMatch) {
+            const parsedResponse = JSON.parse(jsonMatch[1])
+            const thomasResponse = parsedResponse.thomas_response
+            
+            if (thomasResponse && thomasResponse.trim()) {
+              if (pendingTTS) {
+                await pendingTTS.catch(() => {})
+                voiceChat.stopSpeaking()
+              }
+              
+              const emotion = voiceChat.detectEmotionFromText(thomasResponse, 'thomas', currentPhase)
+              await voiceChat.speakText(thomasResponse.trim(), 'thomas', emotion)
+            }
+          }
+        } catch (e) {
+          console.warn('Impossible d\'extraire thomas_response pour TTS:', e.message)
+        }
+      }
+      
+      return fullResponse
+      
+    } catch (error) {
+      console.error('Erreur streaming:', error)
+      throw error
+    } finally {
+      reader.releaseLock()
+    }
+  }
+
+  // Voice chat event handlers
+  voiceChat.onSpeechEnd.value = async (transcript) => {
+    if (transcript.trim()) {
+      await sendMessage(transcript, true) // true = isVoiceInput
+    }
+  }
+
+  voiceChat.onSpeakingEnd.value = () => {
+    // Reprendre l'écoute après que Thomas ait fini de parler
+    if (voiceMode.value && phase.value === 'roleplay') {
+      setTimeout(() => {
+        if (!voiceChat.isListening.value) {
+          voiceChat.startListening()
+        }
+      }, 500) // Petite pause avant de reprendre l'écoute
+    }
+  }
+
+  // Toggle voice mode (only available in roleplay phase)
+  const toggleVoiceMode = () => {
+    // Only allow voice mode in roleplay phase
+    if (phase.value !== 'roleplay') {
+      console.warn('🚫 Mode vocal disponible uniquement en phase roleplay')
+      return
+    }
+    
+    voiceMode.value = !voiceMode.value
+    
+    if (voiceMode.value) {
+      const support = voiceChat.checkVoiceSupport()
+      if (!support.full) {
+        const { showVoiceError } = useModal()
+        showVoiceError(support)
+        voiceMode.value = false
+        return
+      }
+      
+      console.log('🎙️ Mode vocal activé')
+      voiceChat.startListening()
+    } else {
+      console.log('💬 Mode texte activé')
+      voiceChat.stopListening()
+      voiceChat.stopSpeaking()
+    }
   }
 
   return {
@@ -580,11 +744,16 @@ Répondez maintenant UNIQUEMENT avec le JSON, SANS balises markdown:`
     canStartExercise,
     messageCount,
     
+    // Voice state
+    voiceMode,
+    voiceChat,
+    
     // Methods
     addMessage,
     sendMessage,
     clearChat,
     callChatAPI,
+    toggleVoiceMode,
     
     // Exercise methods
     startExercise,
