@@ -288,27 +288,36 @@ Répondez maintenant UNIQUEMENT avec le JSON, SANS balises markdown:`
         if (phase.value === 'roleplay' && !enableStreaming) {
           const jsonResponse = await parseRoleplayResponse(rawResponse, userMessage)
           
-          // Handle off-topic warning
-          if (jsonResponse.off_topic_warning) {
-            return { 
-              content: jsonResponse.off_topic_warning, 
-              source: 'warning',
-              isOffTopic: true
+          // Check language and show warning if not French
+          if (jsonResponse.language && jsonResponse.language !== 'fra') {
+            const languageWarnings = [
+              "Désolé, je ne comprends que le français ! Pouvez-vous répéter en français s'il vous plaît ?",
+              "Excusez-moi, mais je ne parle que français. Pourriez-vous reformuler votre message ?",
+              "Je ne comprends pas cette langue. Merci de me parler en français !",
+              "Oups ! Je ne comprends que le français. Pouvez-vous essayer à nouveau ?",
+              "Désolé Thomas, mais je ne comprends que le français. Reformulez s'il vous plaît !"
+            ]
+            
+            const randomWarning = languageWarnings[Math.floor(Math.random() * languageWarnings.length)]
+            
+            return {
+              content: randomWarning,
+              source: 'system',
+              isThomas: false,
+              isLanguageWarning: true
             }
           }
           
-          // Update scores from JSON evaluation
-          scores.decrire = jsonResponse.desc_evaluation.decrire
-          scores.exprimer = jsonResponse.desc_evaluation.exprimer
-          scores.specifier = jsonResponse.desc_evaluation.specifier
-          scores.conclure = jsonResponse.desc_evaluation.conclure
+          // Update scores based on user message
+          analyzeMessage(userMessage)
           
-          // Return Thomas response with coach feedback attached
-          return { 
-            content: jsonResponse.thomas_response, 
+          return {
+            content: jsonResponse.thomas_response,
             source: 'ai',
+            isThomas: true,
             coachFeedback: jsonResponse.coach_feedback,
-            isThomas: true
+            isOffTopic: !!jsonResponse.off_topic_warning,
+            language: jsonResponse.language
           }
         } else if (phase.value === 'roleplay' && enableStreaming) {
           // For streaming voice mode, return simplified response

@@ -75,15 +75,25 @@ export function useVoiceChat() {
 
       speechRecognition.value.onstart = () => {
         isListening.value = true
-        console.log('🎤 Écoute démarrée')
+        console.log('🎤 ÉCOUTE DÉMARRÉE - MICROPHONE ACTIF!')
+        console.log('🔊 Parlez maintenant, je vous écoute...')
       }
 
       speechRecognition.value.onresult = (event) => {
+        console.log('🔊 SIGNAL AUDIO DÉTECTÉ! Event:', event)
+        
         let interimTranscript = ''
         let finalTranscript = ''
 
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const transcript = event.results[i][0].transcript
+          const confidence = event.results[i][0].confidence
+          
+          console.log(`📋 Résultat ${i}:`, {
+            transcript,
+            confidence,
+            isFinal: event.results[i].isFinal
+          })
           
           if (event.results[i].isFinal) {
             finalTranscript += transcript
@@ -94,6 +104,7 @@ export function useVoiceChat() {
 
         // Mise à jour de la transcription en cours
         currentTranscription.value = interimTranscript || finalTranscript
+        console.log('📝 Transcription actuelle:', currentTranscription.value)
 
         // Callback pour transcription mise à jour
         if (onTranscriptionUpdate.value) {
@@ -109,20 +120,50 @@ export function useVoiceChat() {
 
       speechRecognition.value.onerror = (event) => {
         console.error('❌ Erreur reconnaissance vocale:', event.error)
+        
+        if (event.error === 'no-speech') {
+          console.warn('⚠️ Aucune parole détectée - Continuez à parler ou vérifiez votre micro')
+          // Ne pas arrêter l'écoute pour no-speech, juste avertir
+          return
+        }
+        
+        if (event.error === 'not-allowed') {
+          console.error('❌ Permission microphone refusée - Autorisez l\'accès au microphone')
+        }
+        
         isListening.value = false
       }
 
       speechRecognition.value.onend = () => {
         console.log('🔇 Reconnaissance vocale terminée')
-        isListening.value = false
+        
+        // Redémarrer automatiquement l'écoute si on est toujours en mode vocal
+        if (isListening.value) {
+          setTimeout(() => {
+            if (isListening.value) {
+              console.log('🔄 Redémarrage automatique de l\'\u00e9coute')
+              speechRecognition.value.start()
+            }
+          }, 100)
+        } else {
+          isListening.value = false
+        }
       }
 
+      console.log('🚀 LANCEMENT DE LA RECONNAISSANCE VOCALE...')
       speechRecognition.value.start()
+      
       console.log('🎤 ÉCOUTE DÉMARRÉE - Parlez maintenant!')
       console.log('📋 État vocal:', {
         listening: isListening.value,
         speaking: isSpeaking.value,
         processing: isProcessingAudio.value
+      })
+      console.log('🔊 Configuration Speech Recognition:', {
+        continuous: speechRecognition.value.continuous,
+        interimResults: speechRecognition.value.interimResults,
+        lang: speechRecognition.value.lang,
+        maxAlternatives: speechRecognition.value.maxAlternatives
       })
       return true
     } catch (error) {

@@ -16,7 +16,7 @@ Tu dois OBLIGATOIREMENT répondre au format JSON exact suivant, RIEN D'AUTRE :
     "conclure": 0
   },
   "off_topic_warning": null
-  "language": "fr"
+  "language": "fra"
 }
 \`\`\`
 
@@ -71,11 +71,10 @@ Si l'utilisateur :
 Alors \`off_topic_warning\` = "Message de recadrage poli mais ferme"
 Sinon \`off_topic_warning\` = null
 
-## Détection de la langue (dans language)
+## Détection de la langue selon codes de langue ISO 639-3 à 3 lettres (dans language)
 
-Si l'utilisateur parle en français, \`language\` = "fr"
-Si l'utilisateur parle en anglais, \`language\` = "en"
-
+Si l'utilisateur parle en français, \`language\` = "fra"
+Si l'utilisateur parle en anglais, \`language\` = "eng"
 
 ## Exemples de contexte Thomas
 
